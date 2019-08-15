@@ -1,0 +1,165 @@
+.home-right-siderbar{
+    background-color: #fff;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    width: 280px !important;
+    z-index: 1009;
+    bottom: 0;
+    right: 0px;
+    box-shadow: rgba(0,0,0,0.5) 0px 0px 5px 5px;
+}
+
+.home-right-siderbar-right{
+    background-color: #fff;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    width: 1000px !important;
+    z-index: 1009;
+    bottom: 0;
+    right: 0px;
+    /*border-left: solid 3px rgb(0,0,0);*/
+}
+
+.level-right-siderbar{
+    background-color: #fff;
+    border-left: 1px solid #e7eaec;
+    border-top: 1px solid #e7eaec;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    width: 280px !important;
+    bottom: 0;
+    box-shadow: rgba(0,0,0,0.5) 0px 0px 5px 5px;
+}
+
+
+
+
+.level-right-siderbar-right{
+    /*background-color: rgba(1,86,151,0.7);*/
+    background-image: linear-gradient(to right, rgba(2,86,151,0.8),rgba(39,132,136,0.7));
+    /*border-right: 3px solid rgba(0,148,252,0.3);*/
+    /*border-left: 3px solid rgba(0,148,252,0.3);*/
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    width: 277px !important;
+    bottom: 0;
+
+}
+.third-right-siderbar{
+    background-color: #fff;
+    border-left: 1px solid #e7eaec;
+    border-top: 1px solid #e7eaec;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    width: 280px !important;
+    z-index: 1007;
+    bottom: 0;
+    right: -160px;
+    box-shadow: rgba(0,0,0,0.5) 0px 0px 5px 5px;
+}
+.forth-right-siderbar{
+    background-color: #fff;
+    border-left: 1px solid #e7eaec;
+    border-top: 1px solid #e7eaec;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    width: 280px !important;
+    z-index: 1006;
+    bottom: 0;
+    right: -440px;
+    box-shadow: rgba(0,0,0,0.5) 0px 0px 5px 5px;
+}
+.collectionBlock{
+     background-color: #D0D0D0;
+     border-radius: 3px;
+     padding-left: 10px;
+     margin-bottom: 10px;
+ }
+
+
+.sectionBlock:hover{
+    border-left:5px solid #0096FE;
+
+    padding-left: 0px;
+}
+.sectionBlock{
+    background-color: #082F4E;
+    border-width: 0px;
+    color: #ffffff !important;
+    padding: 0px 10px 0px 10px !important;
+
+}
+
+.sectionBlock-left{
+    background-color: rgba(255,255,255,0);
+    border-width: 0px;
+    color: #ffffff !important;
+    padding: 0px 10px 0px 10px !important;
+
+}
+
+.sectionBlock-left:hover{
+    border-left:5px solid #0096FE;
+    padding-left: 0px;
+}
+
+.blockInside{
+    padding: 8px;
+    border:1px solid #0096FE ;
+    background-color: #03375C;
+}
+
+
+
+.errorBox{
+    padding: 8px;
+    border:1px solid rgba(255,0,0,0.4);
+    background-color:rgba(255,74,77,0.3)
+}
+
+.errorBox1{
+    padding: 8px;
+    border:1px solid rgba(255,0,0,0.7);
+    background-color:rgba(255,74,77,0.3)
+}
+
+.blockInsideLine{
+    padding: 8px;
+    border:1px solid #0096FE ;
+    background-color: rgba(255,255,255,0.1);
+}
+
+.blockInside:hover{
+    background-color: #003C65;
+}
+
+.blockInside-left{
+    padding: 8px;
+    background-color: #03375C;
+}
+
+.blockInside-left:hover{
+    background-color:rgba(255,74,77,0.6);
+}
+
+
+.removeBoxContainerBtn{
+    z-index:9999;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+}
+
+
+.blockInsidenext{
+    padding: 8px;
+    border:2px solid #0096FE;
+    background-color: #015B9A;
+}

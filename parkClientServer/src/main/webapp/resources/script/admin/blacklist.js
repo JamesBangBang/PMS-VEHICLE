@@ -1,0 +1,485 @@
+var mainTable;
+
+$(function(){
+    iniDataTable();
+
+    var icon = "<i class='fa fa-times-circle'></i> ";
+    $("#addBlacklistForm").validate({
+        rules: {
+            carNo:{
+                required: true
+            },
+            driverName: {
+                required: true,
+                minlength: 2,
+                maxlength:20
+            },
+            driverTelephoneNumber: {
+                required: false,
+                isMobile:true
+            },
+            carparkId: {
+                required: true,
+                select:true
+            },
+            effectiveStartTime: {
+                required: true
+            },
+            effectiveEndtTime: {
+                required: true
+            }
+        },
+        messages: {
+            carNo:{
+                required: icon + "请输入车牌号"
+            },
+            driverName: {
+                required: icon + "请输入姓名",
+                minlength: icon + "姓名必须两个字符以上",
+                maxlength: icon + "姓名不能超过20个字符"
+            },
+            carparkId: {
+                required: icon + "请选择一个车场"
+            },
+            driverTelephoneNumber: {
+                required: icon + "请输入电话号码"
+            },
+            effectiveStartTime: {
+                required: icon + "时间格式不正确/不可为空"
+            },
+            effectiveEndtTime: {
+                required: icon + "时间格式不正确/不可为空"
+            }
+        }
+    });
+    var dateStr = new Date().Format("yyyy-MM-dd");
+    var dateStart = new Date().Format("yyyy-MM-dd 00:00:00");
+    var dateEnd = new Date().Format("yyyy-MM-dd 23:59:59");
+
+    //时间表格
+    var effectiveStartTime = {
+        elem: '#effectiveStartTime',
+        format: 'YYYY-MM-DD hh:mm:ss',
+        max: '2099-06-16 23:59:59', //最大日期
+        istime: true,
+        istoday: false,
+        start: dateStr + ' 00:00:00',
+        value:dateStart,
+        choose: function (datas) {
+            effectiveEndTime.min = datas; //开始日选好后，重置结束日的最小日期
+            effectiveEndTime.start = datas //将结束日的初始值设定为开始日
+        }
+    };
+    var effectiveEndTime = {
+        elem: '#effectiveEndTime',
+        format: 'YYYY-MM-DD hh:mm:ss',
+        max: '2099-06-16 23:59:59',
+        istime: true,
+        istoday: false,
+        value:dateEnd,
+        choose: function (datas) {
+            effectiveStartTime.max = datas; //结束日选好后，重置开始日的最大日期
+        }
+    };
+    var startMin = {
+        elem: '#startMin',
+        format: 'YYYY-MM-DD hh:mm:ss',
+        max: '2099-06-16 23:59:59',
+        istime: true,
+        istoday: false,
+        choose: function (datas) {
+            endMin.min = datas; //开始日选好后，重置结束日的最小日期
+            endMin.start = datas //将结束日的初始值设定为开始日
+        }
+    };
+    var startMax = {
+        elem: '#startMax',
+        format: 'YYYY-MM-DD hh:mm:ss',
+        max: '2099-06-16 23:59:59',
+        istime: true,
+        istoday: false,
+        choose: function (datas) {
+            endMax.min = datas; //开始日选好后，重置结束日的最小日期
+            endMax.start = datas //将结束日的初始值设定为开始日
+        }
+    };
+    var endMin = {
+        elem: '#endMin',
+        format: 'YYYY-MM-DD hh:mm:ss',
+        max: '2099-06-16 23:59:59',
+        istime: true,
+        istoday: false,
+        choose: function (datas) {
+            startMin.max = datas; //结束日选好后，重置开始日的最大日期
+        }
+    };
+    var endMax = {
+        elem: '#endMax',
+        format: 'YYYY-MM-DD hh:mm:ss',
+        max: '2099-06-16 23:59:59',
+        istime: true,
+        istoday: false,
+        choose: function (datas) {
+            startMax.max = datas; //结束日选好后，重置开始日的最大日期
+        }
+    };
+
+    $("#effectiveStartTime").val(dateStr + " 00:00:00");
+    $("#startMin").val(dateStr + " 00:00:00");
+    $("#endMin").val(dateStr + " 00:00:00");
+    $("#effectiveEndTime").val(dateStr + " 23:59:59");
+    $("#startMax").val(dateStr + " 23:59:59");
+    $("#endMax").val("");
+
+
+    laydate(effectiveStartTime);
+    laydate(effectiveEndTime);
+    laydate(startMin);
+    laydate(startMax);
+    laydate(endMin);
+    laydate(endMax);
+
+    $("#addBlacklist").unbind("click").bind("click", function () {
+
+        initSelect();
+        // var params ={'depId':'159e0185ae5911e78ed5a4bf0116715b'};
+        if(typeof(getDepId(getCurrentCarparkId()))==="undefined"){
+
+            return
+
+        }
+        initSelect();
+        updateSelect();
+        addRoleFormSet();
+
+    });
+
+    initSearchCondition();
+});
+
+
+
+//表格数据
+function iniDataTable(){
+    var params={
+        depId:getDepId(getCurrentCarparkId()),
+        carparkId:""
+    };
+    mainTable = $('#blacklist').DataTable( {
+        ordering: true,
+        processing:true,
+        searching:false,
+        autoWidth:true,
+        serverSide:true,
+        paging:true,
+        ajax: {
+            url: starnetContextPath + "/reservation/getBlacklist",
+            type: 'POST',
+            data:params
+        },
+        columns:[
+            {"data":"carNo"},
+            {"data":"packChlidKind"},
+            {"data":"driverName"},
+            {"data":"driverTelephoneNumber"},
+            {"data":"driverInfo"},
+            {"data":"carparkName"},
+            {"data":"effectiveStartTime"},
+            {"data":"effectiveEndTime"},
+            {"data":"carparkId"},
+            {"data":"driverFileId"},
+            {"data":"memberWalletId"},
+            {"data":"depId"}
+        ],
+        "columnDefs": [
+            {
+                "render": function(data, type, row, meta) {
+                    return '<button class="btn btn-info btn-sm" style="background-color: #FFAB99;border-color:#FFAB99 "  onclick="editFunction(' + meta.row + ')">修改</button>' +
+                        ' <button class="btn btn-info btn-sm btn-danger"  onclick="deleteFunction(' + meta.row + ')" >删除</button>';
+                },
+                "targets": 8
+            },
+            {
+                "targets":[1,9,10,11],
+                "visible":false
+            },
+            {
+                /*给每个字段设置默认值，当返回data中数据为null不会报错*/
+                "defaultContent": "",
+                "targets": "_all"
+            }
+
+        ],
+        language:dataTableLanguage
+    } );
+}
+
+function initSelect() {
+    $("#carNo").val("");
+    $("#driverName").val("");
+    $("#driverTelephoneNumber").val("");
+    $("#driverInfo").val("");
+    $("[name = carparkId]").val(parent.parkID);
+    $("[name = carparkId]").trigger('chosen:updated');
+
+    var dateStart = new Date().Format("yyyy-MM-dd 00:00:00");
+    var dateEnd = new Date().Format("yyyy-MM-dd 23:59:59");
+
+    //时间表格
+    var effectiveStartTime = {
+        elem: '#effectiveStartTime',
+        format: 'YYYY-MM-DD hh:mm:ss',
+        max: '2099-06-16 23:59:59', //最大日期
+        istime: true,
+        istoday: false,
+        //start: dateStr + ' 00:00:00',
+        value:dateStart,
+        choose: function (datas) {
+            effectiveEndTime.min = datas; //开始日选好后，重置结束日的最小日期
+            effectiveEndTime.start = datas //将结束日的初始值设定为开始日
+        }
+    };
+    var effectiveEndTime = {
+        elem: '#effectiveEndTime',
+        format: 'YYYY-MM-DD hh:mm:ss',
+        max: '2099-06-16 23:59:59',
+        istime: true,
+        istoday: false,
+        value:dateEnd,
+        choose: function (datas) {
+            effectiveStartTime.max = datas; //结束日选好后，重置开始日的最大日期
+        }
+    };
+
+    //laydate(effectiveStartTime);
+    //laydate(effectiveEndTime);
+}
+
+function updateSelect() {
+    $('[name =carparkId]').chosen({
+        width:"100%"
+    });
+    $('[name =carparkIdSearch]').chosen({
+        width:"100%"
+    });
+    /*使新赋的值能够刷新成功*/
+    $("select").on('chosen:ready', function(e, params) {
+        $("select").val("true");//设置值  
+    });
+    $("select").trigger('chosen:updated');
+}
+
+function selectChecked(nodeId, nodeValue) {
+    $("'#" + nodeId + "'").find("option[value = '"+ nodeValue +"']").attr("selected","selected");
+}
+
+function editFunction(rowIndex){
+    var rowData = mainTable.row(rowIndex).data();
+
+    initSelect();
+    $("#addBlacklistForm").populateForm(rowData);
+    var blackType;
+    blackType = rowData.packChlidKind;
+    $("#carparkId").find("option[value = '"+ rowData.carparkId +"']").attr("selected","selected");
+    updateSelect();
+    edtRoleFormSet();
+
+}
+
+function getDepId(id) {
+    var params = {};
+    var depId="";
+    if (id == "" || id == null){
+        params.carparkId = getCurrentCarparkId();
+    }else{
+        params.carparkId = id;
+    }
+    $.ajax({
+        url: starnetContextPath + "/report/getDeptId",
+        type: "POST",
+        dataType: 'json',
+        async: false,
+        contentType: 'application/json',
+        data: JSON.stringify(params),
+        beforeSend: function (request) {
+            request.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+        },
+        success: function (res) {
+            if(res.result == 0){
+                depId = res.data[0].departmentId;
+            }else{
+                errorPrompt("获取单位信息失败！");
+                return "";
+            }
+        },
+        error:function(){
+            errorPrompt("无法访问网络","")
+        }
+    });
+    return depId;
+}
+
+function getCurrentCarparkId() {
+    var carparkId =  window.parent.parkID;
+    return carparkId;
+}
+
+function initSearchCondition() {
+
+    if(typeof(getDepId(getCurrentCarparkId()))=="undefined"){
+
+        return
+
+    }
+    var ownCarparkParam = {};
+    $.post(starnetContextPath + "/carpark/getOwnCarparkInfo",ownCarparkParam,function (res) {
+        if (res.result == 0) {
+            $("#carparkIdSearch").empty();
+            var item = "<option value='all'>全部车场</option>";
+            $("#carparkIdSearch").append(item);
+            for(var i in res.data){
+                var item = "<option value='" + res.data[i].carparkId + "'>" +
+                    res.data[i].carparkName +
+                    "</option>";
+                $("#carparkIdSearch").append(item);
+            }
+            $("#carparkId").empty();
+            for(var i in res.data){
+                var item = "<option value='" + res.data[i].carparkId + "'>" +
+                    res.data[i].carparkName +
+                    "</option>";
+                $("#carparkId").append(item);
+            }
+            updateSelect();
+        }else{
+            errorPrompt(res.msg);
+        }
+    });
+
+
+}
+
+function deleteFunction(rowIndex){
+    if (!confirm("删除后将永久丢失数据，确认要删除？")) {
+        return;
+    }
+    $("#deleteModal").modal("show");
+    $("#deleteBtn").unbind("click").bind("click",function () {
+        var editData = mainTable.row(rowIndex).data();
+        var params={
+            memberWalletId:editData.memberWalletId,
+            driverFileId:editData.driverFileId
+        };
+        ajaxReuqest(starnetContextPath + "/reservation/delBlacklist","post",params,function (res) {
+            if (res.result == 0) {
+                $("#deleteModal").modal("hide");
+                mainTable.ajax.reload();
+                successfulPrompt("删除成功","");
+            }else {
+                errorPrompt("删除失败","")
+            }
+        });
+
+    });
+
+}
+
+function addRoleFormSet() {
+    $('#title').text( "添加黑名单");
+    $('#controlMode').val('0');
+    $("#blacklistModal").modal("show");
+}
+function edtRoleFormSet(params) {
+    $('#title').text( "修改黑名单");
+    $('#controlMode').val('1');
+    $("#blacklistModal").modal("show");
+}
+
+/*搜索操作*/
+function searchChargeInfo() {
+
+    var carparkId = $("#carparkIdSearch").val();
+    if (carparkId == "all") carparkId = "";
+
+    var params = {"carNo":$("#carNoSearch").val(), "driverName":$("#driverNameSearch").val(),
+        "beginTimeMin":$("#startMin").val(), "beginTimeMax":$("#startMax").val(),
+        "endTimeMin":$("#endMin").val(), "endTimeMax":$("#endMax").val(),
+        "carparkId":carparkId, "depId":getDepId(carparkId),
+        "reservationTypeName":""
+    };
+    mainTable.settings()[0].ajax.data = params;
+    mainTable.ajax.reload();
+}
+
+function outPortExcel(){
+    alert("单位编号：" + getDepId());
+}
+
+$(function () {
+    $("#saveBtn").on("click", function () {
+        if (!$("#addBlacklistForm").valid()) {
+            return;
+        }
+        var isRepeat = -1;
+        var params = $("#addBlacklistForm").serializeObject();
+        if(!params["carparkId"]){
+            errorPrompt("请选择车场！");
+            return;
+        }
+        //添加单位和车场
+        if(params.controlMode == "0")
+            params.carparkName = $("#carparkId").text();
+
+        $.ajax({
+            url: starnetContextPath + "/reservation/isBlacklistCarparkRepeat",
+            type: "POST",
+            dataType: 'json',
+            async: false,
+            contentType: 'application/json',
+            data: JSON.stringify(params),
+            beforeSend: function (request) {
+                request.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+            },
+            success: function (res) {
+                if(res == true){
+                    errorPrompt("在该车场已经存在相同车牌的黑名单信息！");
+                    isRepeat = 0;
+                }
+            },
+            error:function(){
+                errorPrompt("无法访问网络","")
+            }
+        });
+        if(isRepeat == 0) return;
+
+        ajaxReuqest(starnetContextPath + "/reservation/saveBlacklist","post",params,function (res) {
+            if(res.result == 0){
+                $("#blacklistModal").modal("hide");
+                mainTable.ajax.reload();
+                successfulPrompt("保存成功","");
+            }else{
+                errorPrompt("保存失败",res.msg);
+            }
+        });
+
+    });
+});
+
+function create() {
+
+
+}
+
+// 刷新表格数据
+function refreshBtnClick() {
+    mainTable.ajax.reload(null,true);
+}
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/common/common.iml" filepath="$PROJECT_DIR$/common/common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/parkClientServer/parkClientServer.iml" filepath="$PROJECT_DIR$/parkClientServer/parkClientServer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/starCoreService/starCoreService.iml" filepath="$PROJECT_DIR$/starCoreService/starCoreService.iml" />
+      <module fileurl="file://$PROJECT_DIR$/starnet-park-system.iml" filepath="$PROJECT_DIR$/starnet-park-system.iml" />
+    </modules>
+  </component>
+</project>

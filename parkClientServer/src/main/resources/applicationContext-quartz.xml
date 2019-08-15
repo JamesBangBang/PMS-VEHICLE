@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd   http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd"
+       default-lazy-init="false">
+
+    <!--<task:scheduler id="uploadInOutCarRoadinfoQuartzScheduler" pool-size="5"/>-->
+    <!--<task:scheduled-tasks scheduler="uploadInOutCarRoadinfoQuartzScheduler">-->
+        <!--<task:scheduled ref="uploadInOutCarRoadinfoQuartz" method="run" cron="0/5 * * * * *"/>-->
+    <!--</task:scheduled-tasks>-->
+
+
+
+    <!--<task:scheduler id="uploadCollectorInfoQuartzScheduler" pool-size="5"/>-->
+    <!--<task:scheduled-tasks scheduler="uploadCollectorInfoQuartzScheduler">-->
+    <!--<task:scheduled ref="uploadCollectorInfoQuartz" method="run" cron="0/5 * * * * *"/>-->
+    <!--</task:scheduled-tasks>-->
+
+
+
+    <!--<task:scheduler id="uploadCarPictureInfoQuartzScheduler" pool-size="5"/>-->
+    <!--<task:scheduled-tasks scheduler="uploadCarPictureInfoQuartzScheduler">-->
+        <!--<task:scheduled ref="uploadCarPictureInfoQuartz" method="run" cron="0/5 * * * * *"/>-->
+    <!--</task:scheduled-tasks>-->
+
+
+    <!--<task:scheduler id="uploadOperatorLogInfoScheduler" pool-size="5"/>-->
+    <!--<task:scheduled-tasks scheduler="uploadOperatorLogInfoScheduler">-->
+    <!--<task:scheduled ref="uploadOperatorLogInfoQuartz" method="run" cron="0/5 * * * * *"/>-->
+    <!--</task:scheduled-tasks>-->
+
+    <!--<task:scheduler id="uploadShiftChangeStatInfoScheduler" pool-size="5"/>-->
+    <!--<task:scheduled-tasks scheduler="uploadShiftChangeStatInfoScheduler">-->
+        <!--<task:scheduled ref="uploadShiftChangeStatInfoQuartz" method="run" cron="0/5 * * * * *"/>-->
+    <!--</task:scheduled-tasks>-->
+
+    <!--<task:scheduler id="uploadMemberMonthHistoryScheduler" pool-size="5"/>-->
+    <!--<task:scheduled-tasks scheduler="uploadMemberMonthHistoryScheduler">-->
+        <!--<task:scheduled ref="uploadMemberMonthHistoryQuartz" method="run" cron="0/5 * * * * *"/>-->
+    <!--</task:scheduled-tasks>-->
+
+
+    <!--<task:scheduler id="uploadBlackMemberInfoScheduler" pool-size="5"/>-->
+    <!--<task:scheduled-tasks scheduler="uploadBlackMemberInfoScheduler">-->
+        <!--<task:scheduled ref="uploadBlackMemberInfoQuartz" method="run" cron="0/5 * * * * *"/>-->
+    <!--</task:scheduled-tasks>-->
+
+    <!--<task:scheduler id="uploadMemberKindInfoQuartzScheduler" pool-size="5"/>-->
+    <!--<task:scheduled-tasks scheduler="uploadMemberKindInfoQuartzScheduler">-->
+    <!--<task:scheduled ref="uploadMemberKindInfoQuartz" method="run" cron="0/30 * * * * *"/>-->
+    <!--</task:scheduled-tasks>-->
+
+    <!--<task:scheduler id="uploadMemberInfoScheduler" pool-size="5"/>-->
+    <!--<task:scheduled-tasks scheduler="uploadMemberInfoScheduler">-->
+        <!--<task:scheduled ref="uploadMemberInfoQuartz" method="run" cron="0/5 * * * * *"/>-->
+    <!--</task:scheduled-tasks>-->
+
+
+    <!--定时校准设备时间服务-->
+    <task:scheduler id="deviceTimeSetScheduler" pool-size="3"/>
+    <task:scheduled-tasks scheduler="deviceTimeSetScheduler">
+        <task:scheduled ref="deviceTimeSetQuartz" method="run" cron="0 0 1 * * ?"/>
+    </task:scheduled-tasks>
+
+    <!--<task:scheduler id="parkLoginStatusScheduler" pool-size="3"/>
+    <task:scheduled-tasks scheduler="parkLoginStatusScheduler">
+        <task:scheduled ref="parkLoginStatusQuartz" method="run" cron="0 0/5 * * * *"/>
+    </task:scheduled-tasks>
+
+    <task:scheduler id="serviceReTryScheduler" pool-size="1"/>
+    <task:scheduled-tasks scheduler="serviceReTryScheduler">
+        <task:scheduled ref="serviceReTryQuartz" method="run" cron="0 0/30 * * * *"/>
+    </task:scheduled-tasks>-->
+</beans>
