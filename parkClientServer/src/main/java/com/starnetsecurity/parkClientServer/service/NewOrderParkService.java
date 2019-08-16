@@ -59,6 +59,15 @@ public interface NewOrderParkService {
     void deleteSuccessInfo(String failId);
 
     /**
+     * @Author chenbinbin
+     * @Description 处理重新上传失败订单，将入场时间变成当前时间，增加备注
+     * @Date 13:56 2019/8/16
+     * @Param [wechatPayFailUrl]
+     * @return void
+     **/
+    void handleFailInfo(WechatPayFailUrl wechatPayFailUrl);
+
+    /**
      * 处理MQ传输的消息
      * @param jsonObject
      * @throws BizException
@@ -99,6 +108,15 @@ public interface NewOrderParkService {
      * @param jsonObject
      */
     void parkingChargeRenewal(JSONObject jsonObject);
+
+    /**
+     * @Author chenbinbin
+     * @Description 入场数据重传
+     * @Date 10:11 2019/8/16
+     * @Param [jsonObject]
+     * @return void
+     **/
+    void inParkInfoRePush(JSONObject jsonObject);
 
     /**
      * 处理mqtt返回的无感支付标识数据

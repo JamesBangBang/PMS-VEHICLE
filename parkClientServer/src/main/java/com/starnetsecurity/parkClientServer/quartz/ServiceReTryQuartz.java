@@ -41,38 +41,38 @@ public class ServiceReTryQuartz {
                 if ("on".equals(AppInfo.isConnectCloud)) {
                     List<WechatPayFailUrl> wechatPayFailUrlList = newOrderParkService.getWechatPayFailUrlList();
                     if (!CollectionUtils.isEmpty(wechatPayFailUrlList)) {
-                        LOGGER.info("数据业务重传定时器启动");
                         for (WechatPayFailUrl wechatPayFailUrl : wechatPayFailUrlList) {
                             JSONObject orderElement = newOrderParkService.getOrderInfoByUrl(wechatPayFailUrl.getIsUsed(), wechatPayFailUrl.getUrl());
                             if (wechatPayFailUrl.getIsUsed().equals(0)) {
                                 try {
                                     String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/parkInfo/uploadInParkOrder", orderElement);
                                     if (CommonUtils.isEmpty(responseStr)) {
-                                        LOGGER.info("订单数据重传失败");
+                                        LOGGER.info("入场订单数据重传失败" + responseStr);
                                     }
                                     JSONObject res = JSON.parseObject(responseStr);
                                     if ("200".equals(res.getString("code"))) {
                                         newOrderParkService.deleteSuccessInfo(wechatPayFailUrl.getId());
                                     } else {
-                                        LOGGER.info("订单数据重传失败");
+                                        newOrderParkService.handleFailInfo(wechatPayFailUrl);
                                     }
                                 } catch (IOException e) {
-                                    LOGGER.info("订单数据重传失败");
+                                    newOrderParkService.handleFailInfo(wechatPayFailUrl);
+                                    LOGGER.error("入场订单数据重传失败" + e.getMessage());
                                 }
                             } else if (wechatPayFailUrl.getIsUsed().equals(1)) {
                                 try {
                                     String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/parkInfo/uploadOutParkOrder", orderElement);
                                     if (CommonUtils.isEmpty(responseStr)) {
-                                        LOGGER.info("订单数据重传失败");
+                                        LOGGER.info("出场订单数据重传失败" + responseStr);
                                     }
                                     JSONObject res = JSON.parseObject(responseStr);
                                     if ("200".equals(res.getString("code"))) {
                                         newOrderParkService.deleteSuccessInfo(wechatPayFailUrl.getId());
                                     } else {
-                                        LOGGER.info("订单数据重传失败");
+                                        LOGGER.info("出场订单数据重传失败" + responseStr);
                                     }
                                 } catch (IOException e) {
-                                    LOGGER.info("订单数据重传失败");
+                                    LOGGER.error("出场订单数据重传失败" + e.getMessage());
                                 }
                             } else if (wechatPayFailUrl.getIsUsed().equals(2)) {
                                 try {

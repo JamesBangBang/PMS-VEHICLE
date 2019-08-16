@@ -283,6 +283,25 @@ public class NewOrderParkServiceImpl implements NewOrderParkService {
     }
 
     @Override
+    public void handleFailInfo(WechatPayFailUrl wechatPayFailUrl) {
+        LOGGER.info("处理重传失败的入场数据");
+        String[] orderArr = wechatPayFailUrl.getUrl().split(",");
+        Integer arrLen = Integer.valueOf(orderArr.length);
+        InoutRecordInfo inoutRecordInfo = (InoutRecordInfo) baseDao.getById(InoutRecordInfo.class,orderArr[0]);
+        OrderInoutRecord orderInoutRecord = (OrderInoutRecord) baseDao.getById(OrderInoutRecord.class,orderArr[1]);
+        if (CommonUtils.isEmpty(orderInoutRecord.getOutRecordId())){
+            String inTime = inoutRecordInfo.getInoutTime().toString();
+            Timestamp inTimeNew = CommonUtils.getTimestamp();
+            inoutRecordInfo.setInoutTime(inTimeNew);
+            inoutRecordInfo.setRemark("数据异常，原入场时间时间：" + inTime);
+            baseDao.update(inoutRecordInfo);
+            orderInoutRecord.setInTime(inTimeNew);
+            orderInoutRecord.setRemark("数据异常，原入场时间时间：" + inTime);
+            baseDao.update(orderInoutRecord);
+        }
+    }
+
+    @Override
     public void handleMqInfo(JSONObject jsonObject) throws BizException {
         String mqType = jsonObject.getString("mqType") + "";
         if ("monthCardRenewal".equals(mqType)){
@@ -294,6 +313,8 @@ public class NewOrderParkServiceImpl implements NewOrderParkService {
             uparkChargeMarkRenewal(jsonObject);
         }else if ("uparkPaySuccess".equals(mqType)){
             uparkPaySuccessRenewal(jsonObject);
+        }else if ("orderRePush".equals(mqType)){
+            inParkInfoRePush(jsonObject);
         } else {
             throw new BizException("未知的mq类型");
         }
@@ -522,6 +543,28 @@ public class NewOrderParkServiceImpl implements NewOrderParkService {
             }
         } catch (Exception e) {
             LOGGER.error("处理mqtt返回的临停缴费处理数据");
+        }
+
+    }
+
+    @Override
+    public void inParkInfoRePush(JSONObject jsonObject) {
+        try {
+            LOGGER.info("接收到云平台信息，查询入场信息");
+            String carno = jsonObject.getString("carno");
+            String hql = "from OrderInoutRecord where carNo = ? and outRecordId is null order by inTime desc";
+            List<OrderInoutRecord> list = (List<OrderInoutRecord>)baseDao.queryForList(hql,carno);
+            if (list.size() > 0){
+                OrderInoutRecord orderInoutRecord = list.get(0);
+                if (("金山园区".equals(orderInoutRecord.getCarparkName())) || ("海西园区".equals(orderInoutRecord.getCarparkName()))){
+                    return;
+                }
+                LOGGER.info("接收到云平台信息，入场信息开始重传");
+                InoutRecordInfo inoutRecordInfo = (InoutRecordInfo)baseDao.getById(InoutRecordInfo.class,orderInoutRecord.getInRecordId());
+                addInParkOrderToCloud(inoutRecordInfo,"",orderInoutRecord);
+            }
+        } catch (Exception e) {
+            LOGGER.error("mq传回的数据处理失败：" + jsonObject.toJSONString());
         }
 
     }
