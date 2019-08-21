@@ -2,17 +2,13 @@ package com.starnetsecurity.parkClientServer.quartz;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.starnetsecurity.common.dao.HibernateBaseDao;
 import com.starnetsecurity.common.exception.BizException;
-import com.starnetsecurity.common.nio.SemaphoreExecutor;
 import com.starnetsecurity.common.util.CommonUtils;
 import com.starnetsecurity.common.util.HttpRequestUtils;
 import com.starnetsecurity.parkClientServer.entity.WechatPayFailUrl;
 import com.starnetsecurity.parkClientServer.init.AppInfo;
 import com.starnetsecurity.parkClientServer.service.NewOrderParkService;
-import com.starnetsecurity.parkClientServer.service.OrderParkService;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +19,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * Created by 宏炜 on 2017-09-07.
+ * Created by chenbinbin on 2017-09-07.
+ * 订单重传
  */
 @Component
 public class ServiceReTryQuartz {
@@ -43,9 +40,12 @@ public class ServiceReTryQuartz {
                     if (!CollectionUtils.isEmpty(wechatPayFailUrlList)) {
                         for (WechatPayFailUrl wechatPayFailUrl : wechatPayFailUrlList) {
                             JSONObject orderElement = newOrderParkService.getOrderInfoByUrl(wechatPayFailUrl.getIsUsed(), wechatPayFailUrl.getUrl());
+                            if (CommonUtils.isEmpty(orderElement)){
+                                continue;
+                            }
                             if (wechatPayFailUrl.getIsUsed().equals(0)) {
                                 try {
-                                    String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/parkInfo/uploadInParkOrder", orderElement);
+                                    String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/orderInfo/uploadInParkOrder", orderElement);
                                     if (CommonUtils.isEmpty(responseStr)) {
                                         LOGGER.info("入场订单数据重传失败" + responseStr);
                                     }
@@ -61,7 +61,7 @@ public class ServiceReTryQuartz {
                                 }
                             } else if (wechatPayFailUrl.getIsUsed().equals(1)) {
                                 try {
-                                    String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/parkInfo/uploadOutParkOrder", orderElement);
+                                    String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/orderInfo/uploadOutParkOrder", orderElement);
                                     if (CommonUtils.isEmpty(responseStr)) {
                                         LOGGER.info("出场订单数据重传失败" + responseStr);
                                     }
@@ -76,7 +76,7 @@ public class ServiceReTryQuartz {
                                 }
                             } else if (wechatPayFailUrl.getIsUsed().equals(2)) {
                                 try {
-                                    String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/parkInfo/uploadInChargeTimeOrder", orderElement);
+                                    String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/orderInfo/uploadInChargeTimeOrder", orderElement);
                                     if (CommonUtils.isEmpty(responseStr)) {
                                         LOGGER.info("订单数据重传失败");
                                     }

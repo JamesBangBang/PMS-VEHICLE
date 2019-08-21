@@ -32,8 +32,6 @@ public interface ClientBizService {
 
     void reconnectLogin(String username, String password, String ips, SocketClient socketClient) throws BizException;
 
-    void addInParkRecord(SocketClient socketClient,JSONObject params) throws BizException;
-
     void updatePostComputerStatus(PostComputerManage computerManage,int status);
 
     PostComputerManage getPostComputerManage(String roadId);

@@ -1623,7 +1623,7 @@ public class ClientBizServiceImpl implements ClientBizService {
 
     @Override
     public void reconnectLogin(String username, String password, String ips, SocketClient socketClient) throws BizException {
-        String hql = "from Operator where operatorUserName = ?";
+        String hql = "from Operator where operatorUserName = ? and useMark >= 0";
         Operator operator = (Operator)baseDao.getUnique(hql,username);
         if(CommonUtils.isEmpty(operator)){
             throw new BizException("用户名不存在");
@@ -1636,7 +1636,7 @@ public class ClientBizServiceImpl implements ClientBizService {
         PostComputerManage postComputerManage = null;
         String[] ipArray = ips.split(",");
         for(String ip : ipArray){
-            hql = "from PostComputerManage where postComputerIp = ?";
+            hql = "from PostComputerManage where postComputerIp = ? and useMark >= 0";
             postComputerManage = (PostComputerManage)baseDao.getUnique(hql,ip);
             if(!CommonUtils.isEmpty(postComputerManage)){
                 break;
@@ -1648,35 +1648,6 @@ public class ClientBizServiceImpl implements ClientBizService {
         socketClient.setChannelId(postComputerManage.getPostComputerId());
         socketClient.setOperator(operator);
         socketClient.setPostComputerManage(postComputerManage);
-    }
-
-    @Override
-    public void addInParkRecord(SocketClient socketClient,JSONObject params) throws BizException {
-//        String carparkId = params.getString("carparkId");
-//        CarparkInfo carparkInfo = (CarparkInfo)baseDao.getById(CarparkInfo.class,carparkId);
-//
-//        InOutRecord inOutRecord = new InOutRecord();
-//        inOutRecord.setInOutCarNo(params.getString("carNo"));
-//        inOutRecord.setInOutParkingLotNo(carparkInfo.getCarparkId());
-//        inOutRecord.setInOutTime(new Timestamp(params.getLong("inOutTime")));
-//        inOutRecord.setInOutFlag("0");
-//
-//        inOutRecord.setInOutStatus("");//// TODO: 2017-12-20
-//        inOutRecord.setPhotoCapturePicName(params.getString("photoUri"));
-//        inOutRecord.setOperationSource(socketClient.getPostComputerManage().getPostComputerId());
-//        inOutRecord.setAddTime(CommonUtils.getTimestamp());
-//        inOutRecord.setInOutCameraId(params.getString("inOutCameraId"));
-//        inOutRecord.setCarNoColor(params.getString("carNoColor"));
-//        inOutRecord.setCarNoAttribute(params.getString("carNoAttribute"));
-//
-//        inOutRecord.setInOutCarType("");//// TODO: 2017-12-20
-//        inOutRecord.setInOutOperatorId(socketClient.getOperator().getOperatorId());
-//        inOutRecord.setOperatorName(socketClient.getOperator().getOperatorName());
-//        inOutRecord.setCarparkName(carparkInfo.getCarparkName());
-//        String carRoadId = params.getString("inOutCarRoadId");
-//        InOutCarRoadInfo inOutCarRoadInfo = (InOutCarRoadInfo)baseDao.getById(InOutCarRoadInfo.class,carRoadId);
-//        inOutRecord.setInOutCarRoadId(inOutCarRoadInfo.getCarRoadId());
-//        inOutRecord.setCarRoadName(inOutCarRoadInfo.getCarRoadName());
     }
 
     @Override
@@ -2120,7 +2091,5 @@ public class ClientBizServiceImpl implements ClientBizService {
         }
         return resultStr;
     }
-
-
 
 }
