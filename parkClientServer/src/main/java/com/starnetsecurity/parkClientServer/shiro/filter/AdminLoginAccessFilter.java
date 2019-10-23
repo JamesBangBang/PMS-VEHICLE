@@ -91,7 +91,7 @@ public class AdminLoginAccessFilter extends AccessControlFilter {
             multipleAuthenticationToken.setRememberMe(false);
         }
         try {
-            log.info("用户[{}]正在请求授权认证 ...:", username);
+            //log.info("用户[{}]正在请求授权认证 ...:", username);
             Subject subject = SecurityUtils.getSubject();
             subject.login(multipleAuthenticationToken);
             Map<String, Object> modelMap = new HashedMap();

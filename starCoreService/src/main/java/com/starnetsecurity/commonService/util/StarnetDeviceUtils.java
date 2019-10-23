@@ -83,24 +83,20 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
                     response.body().close();
                     return resBody;
                 case 400:
-                    logger.error("cig设备协议请求错误400,请求URL:{},错误原因:{}",url,response.body().string());
                     response.body().close();
                     return null;
                 case 401:
-                    logger.error("cig设备协议请求错误401,请求URL:{}",url);
                     response.body().close();
                     return null;
                 case 404:
-                    logger.error("cig设备协议请求错误404,请求URL:{}",url);
                     response.body().close();
                     return null;
                 case 500:
-                    logger.error("cig设备协议请求错误500,请求URL:{}",url);
                     response.body().close();
                     return null;
             }
         } catch (IOException e) {
-            logger.error("cig设备协议请求失败,请求URL:{}",url,e);
+
         }
         return null;
     }
@@ -145,7 +141,6 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
             in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "GBK"));
 
         } catch (IOException e) {
-            logger.error("cig设备协议请求失败,请求URL:{}",uri,e);
             return -1;
         }
         //关闭输出流、输入流
@@ -159,7 +154,6 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
                 }
             }
             catch(IOException ex){
-                logger.error("cig设备协议请求失败,请求URL:{}",uri,ex);
             }
         }
         return 200;
@@ -194,20 +188,16 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
                     response.body().close();
                     return parseJson(body);
                 case 400:
-                    logger.error("cig设备协议请求错误400,请求URL:{},错误原因:{}",url,response.body().string());
                     response.body().close();
                     return null;
                 case 401:
-                    logger.error("cig设备协议请求错误401,请求URL:{}",url);
                     response.body().close();
                     return null;
                 case 404:
-                    logger.error("cig设备协议请求错误404,请求URL:{}",url);
                     response.body().close();
                     return null;
             }
         } catch (IOException e) {
-            logger.error("cig设备协议请求失败,请求URL:{}",url,e);
         }
         return null;
     }
@@ -240,32 +230,25 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
                     response.body().close();
                     return 200;
                 case 400:
-                    logger.error("cig设备协议请求错误400,请求URL:{},错误原因:{}",url,response.body().string());
                     response.body().close();
                     return 400;
                 case 401:
-                    logger.error("cig设备协议请求错误401,请求URL:{}",url);
                     return response.code();
                 case 404:
-                    logger.error("cig设备协议请求错误404,请求URL:{}",url);
                     response.body().close();
                     return 404;
                 case 500:
-                    logger.error("cig设备协议请求错误500,请求URL:{}",url);
                     response.body().close();
                     return 500;
                 case 405:
-                    logger.error("cig设备协议请求错误405,请求URL:{}",url);
                     response.body().close();
                     return 405;
                 default:
-                    logger.error("cig设备协议请求错误{},请求URL:{}",response.code(),url);
                     int res = response.code();
                     response.body().close();
                     return res;
             }
         } catch (IOException e) {
-            logger.error("cig设备协议请求失败,请求URL:{}",url,e);
         }
         return -1;
 
@@ -423,24 +406,19 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
                     response.body().close();
                     break;
                 case 400:
-                    logger.error("cig设备协议请求错误400,请求URL:{},错误原因:{}",url,response.body().string());
                     response.body().close();
                     break;
                 case 401:
-                    logger.error("cig设备协议请求错误401,请求URL:{}",url);
                     response.body().close();
                     break;
                 case 404:
-                    logger.error("cig设备协议请求错误404,请求URL:{}",url);
                     response.body().close();
                     break;
                 case 500:
-                    logger.error("cig设备协议请求错误500,请求URL:{}",url);
                     response.body().close();
                     break;
             }
         } catch (IOException e) {
-            logger.error("cig设备协议请求失败,请求URL:{}",url,e);
         }
     }
 
@@ -507,14 +485,12 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
 
     @Override
     public void UpdateGateControlInfo(String ip, Integer port, String username, String password, JSONObject params) {
-        logger.info("更新道闸控制:{}",ip);
         params.put("action","set");
         post(getCgiUrl(ip,port,"carwhitelink.cgi",null),params,getAuthorization(username,password));
     }
 
     @Override
     public void openRoadGate(String ip,Integer port, String username, String password) {
-        logger.info("执行抬杠操作:{}",ip);
         DeviceCgiThread deviceCgiThread = new DeviceCgiThread();
         deviceCgiThread.setIp(ip);
         deviceCgiThread.setPort(port);
@@ -759,16 +735,9 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
             switch (response.code()){
                 case 200:
                     String body = new String(response.body().bytes(),"GBK");
-                case 400:
-                    logger.error("cig设备协议请求错误400,请求URL:{},错误原因:{}",url,response.body().string());
-                case 401:
-                    logger.error("cig设备协议请求错误401,请求URL:{}",url);
-
-                case 404:
-                    logger.error("cig设备协议请求错误404,请求URL:{}",url);
             }
         } catch (IOException e) {
-            logger.error("cig设备协议请求失败,请求URL:{}",url,e);
+
         }
     }
 

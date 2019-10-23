@@ -609,9 +609,7 @@ public class DeviceBizServiceImpl implements DeviceBizService {
                 }
 
             }else{
-                //// 组织出场数据
-                // 1、计算费用
-                LOGGER.info("设备上传出场数据");
+                //组织出场数据
                 Double chargeAmount = 0D;  //应收金额
                 Double chargeAmountForMember = 0D;  //会员收费类型为临时车的时候
                 Timestamp outTime = GetInOutTime(params.getString("Time"));
@@ -1087,10 +1085,6 @@ public class DeviceBizServiceImpl implements DeviceBizService {
                     if (ledDisplayConfig.getSceneNo().equals(1) || ledDisplayConfig.getSceneNo().equals(2) || ledDisplayConfig.getSceneNo().equals(3)
                             || ledDisplayConfig.getSceneNo().equals(4) || ledDisplayConfig.getSceneNo().equals(6)) {
                         playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfig, 4);         //已获取要播报的内容了
-                        /*if ("剩余xxx".equals(playContent)) {
-                            playContent = ledPlayInfo.getString("memberLeft");
-                        }*/
-                        LOGGER.info("四行屏语音播报内容为：" + playContent);
                         try {
                             playInfo = ChangePlayInfoToOx(playContent);
                         } catch (UnsupportedEncodingException e) {
@@ -1584,8 +1578,6 @@ public class DeviceBizServiceImpl implements DeviceBizService {
         String fileUri = CommonUtils.saveCarPlateImage("carPlateImages",params.getString("Photo"),
                 AppInfo.appRootRealPath,AppInfo.contextPath,
                 socketClient.getSocket().getInetAddress().getHostAddress(),date,fileName);
-
-        LOGGER.info("写入车牌推送图片：{}",fileUri);
 
     }
 

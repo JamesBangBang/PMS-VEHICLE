@@ -75,7 +75,6 @@ public class AllinQueryThread extends Thread{
                                         if (orderTransaction.getPayStatus().equals(payStatusEnum.UN_PAID)) {
                                             //超过5分钟未支付，当做垃圾订单处理，删除掉
                                             if (timeDistance > 600) {
-                                                LOGGER.info("垃圾订单删除");
                                                 allinpayService.deleteOrderTransById(transactionId);
                                                 transIdList.remove(i);
                                             } else {

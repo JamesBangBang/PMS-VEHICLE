@@ -143,7 +143,7 @@
         <property name="deviceBizService" ref="deviceBizServiceImpl"></property>
     </bean>
 
-    <rabbit:connection-factory id="connectionFactory" host="${mq.host}" username="${mq.username}" password="${mq.password}" port="${mq.port}" />
+    <!--<rabbit:connection-factory id="connectionFactory" host="${mq.host}" username="${mq.username}" password="${mq.password}" port="${mq.port}" />
 
     <rabbit:admin connection-factory="connectionFactory"/>
 
@@ -153,5 +153,5 @@
 
     <rabbit:listener-container connection-factory="connectionFactory" acknowledge="auto">
         <rabbit:listener queues="listenQueue" ref="rabbitMqListener"/>
-    </rabbit:listener-container>
+    </rabbit:listener-container>-->
 </beans>

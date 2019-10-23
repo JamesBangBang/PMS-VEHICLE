@@ -27,7 +27,6 @@ public class ParkLoginStatusQuartz {
                 try {
                     String res = HttpRequestUtils.post("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/parkInfo/updateCarparkStatus?carparkKey=" + AppInfo.cloudCarparkCode
                             ,null);
-                    LOGGER.info("车场离在线验证：{}", res);
                 }catch (BizException e){
                     LOGGER.error("车场定时验证失败：" + e.getMessage());
                 }

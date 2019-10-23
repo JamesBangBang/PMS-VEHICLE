@@ -45,7 +45,6 @@ public class AllinpayController extends BaseController{
     @ResponseBody
     @RequestMapping(value = "getChargeInfoByCarno", method = RequestMethod.POST,produces = MediaTypes.JSON_UTF_8)
     public JSONObject getChargeInfoByCarno(@RequestParam(value = "carno")String carno){
-        LOGGER.info("1111");
         JSONObject res = new JSONObject();
         try {
             JSONObject data = allinpayService.getChargeInfoByCarno(carno);

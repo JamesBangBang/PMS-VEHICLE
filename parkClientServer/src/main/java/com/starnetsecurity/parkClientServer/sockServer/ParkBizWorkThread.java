@@ -72,7 +72,6 @@ public class ParkBizWorkThread extends Thread {
                 if(!statusCheck){
                     ParkSocketServer.removeClient(socketClient);
                     BizUnitTool.clientBizService.updatePostComputerStatus(socketClient.getPostComputerManage(),0);
-                    LOGGER.error("客户端已离线,工作线程退出,岗亭ID：{}",socketClient.getChannelId());
                     break;
                 }
                 String msg = SocketUtils.receivePackage(this.socketClient.getSocket());
@@ -144,19 +143,15 @@ public class ParkBizWorkThread extends Thread {
                         }
 
                     }catch (JSONException e){
-                        LOGGER.error("JSON数据报文格式错误:{}",msg,e);
                         SocketUtils.sendBizPackage(socketClient,getJSONExceptionResult(),"null_type");
                         continue;
                     }catch (IllegalArgumentException e){
-                        LOGGER.error("不支持的客户端业务或参数:{}",json.getString("type"),e);
                         SocketUtils.sendBizPackage(socketClient,getBizExceptionResult(notSupportBizMsg),json.getString("type"));
                         continue;
                     }catch (BizException e){
-                        LOGGER.error("业务异常:{}",e.getMessage());
                         SocketUtils.sendBizPackage(socketClient,getBizExceptionResult(e.getMessage()),json.getString("type"));
                         continue;
                     }catch (Exception e){
-                        LOGGER.error("系统未知异常:{}",msg,e);
                         SocketUtils.sendBizPackage(socketClient,getExceptionResult(),json.getString("type"));
                         continue;
                     }
@@ -166,19 +161,14 @@ public class ParkBizWorkThread extends Thread {
                     Thread.sleep(50);
                 }
             } catch (InterruptedException e) {
-                LOGGER.error("数据接收线程休眠异常:",e);
             } catch (BizException ex){
                 ParkSocketServer.removeClient(socketClient);
                 BizUnitTool.clientBizService.updatePostComputerStatus(socketClient.getPostComputerManage(),0);
-
-                LOGGER.error("客户端数据处理异常,离线处理,岗亭IP:{}",socketClient.getSocket().getInetAddress().getHostAddress(),ex);
                 break;
             }finally {
                 int second = 9;
                 Timestamp now = CommonUtils.getTimestamp();
                 if((now.getTime() - activeTime.getTime()) > ( second * 1000)){
-                    LOGGER.info("超过{}秒未检测到心跳包数据,岗亭客户端下线处理,岗亭IP:{}",second,socketClient.getSocket().getInetAddress().getHostAddress());
-
                     for (int i = 0; i < ParkSocketServer.getClientsCount(); i++) {
                         SocketClient client = ParkSocketServer.getClient(i);
                         if (socketClient.getSocket().getInetAddress().getHostAddress().equals(client.getSocket().getInetAddress().getHostAddress())) {
@@ -186,8 +176,6 @@ public class ParkBizWorkThread extends Thread {
                         }
                     }
                     BizUnitTool.clientBizService.updatePostComputerStatus(socketClient.getPostComputerManage(),0);
-                    /*ParkSocketServer.removeClient(socketClient);
-                    BizUnitTool.clientBizService.updatePostComputerStatus(socketClient.getPostComputerManage(),0);*/
                     break;
                 }
             }

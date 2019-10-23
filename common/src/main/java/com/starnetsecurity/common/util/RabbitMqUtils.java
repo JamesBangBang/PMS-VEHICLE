@@ -47,13 +47,10 @@ public class RabbitMqUtils {
             conn.close();
             return true;
         } catch (IOException e) {
-            log.error("消息队列发送IO异常，exchangeName：{}，queueName：{}，msg：{}，errorMsg：",exchangeName,queueName,msg,e);
             return false;
         } catch (TimeoutException e) {
-            log.error("消息队列发送超时异常，exchangeName：{}，queueName：{}，msg：{}，errorMsg：",exchangeName,queueName,msg);
             return false;
         } catch (Exception e){
-            log.error("消息队列发送未知异常，exchangeName：{}，queueName：{}，msg：{}，errorMsg：",exchangeName,queueName,msg);
             return false;
         }
     }

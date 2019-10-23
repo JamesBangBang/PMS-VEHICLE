@@ -231,7 +231,6 @@ public class LedPlayFreeInfoServer extends Thread {
                                         ledParamsList.add(params);
 
                                         playList.get(i).put("playTime", CommonUtils.getTimestamp().toString());
-                                        LOGGER.info("播放LED空闲状态开始");
                                         DeviceLedCgiThread deviceLedCgiThread = new DeviceLedCgiThread();
                                         deviceLedCgiThread.setParamsList(ledParamsList);
                                         deviceLedCgiThread.setUsername(deviceInfo.getDeviceUsername());
@@ -317,7 +316,6 @@ public class LedPlayFreeInfoServer extends Thread {
                                         ledParamsList.add(params);
 
                                         playList.get(i).put("playTime", CommonUtils.getTimestamp().toString());
-                                        LOGGER.info("播放四行LED空闲状态开始");
                                         DeviceLedFourThread deviceLedFourThread = new DeviceLedFourThread();
                                         deviceLedFourThread.setParamsList(ledParamsList);
                                         deviceLedFourThread.setUsername(deviceInfo.getDeviceUsername());

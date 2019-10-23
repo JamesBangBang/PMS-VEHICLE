@@ -19,7 +19,6 @@ public class ClientHeartThread extends Thread {
         while(true){
             SocketClient socketClient = null;
             try{
-                //LOGGER.info("当前在线客户端数量:{}", ParkSocketServer.getClientsCount());
                 for(int i = 0; i < ParkSocketServer.getClientsCount(); i++){
                     socketClient = ParkSocketServer.getClient(i);
 
@@ -46,11 +45,7 @@ public class ClientHeartThread extends Thread {
                 Thread.sleep(3000);
             }catch (BizException ex){
                 if(socketClient != null){
-                    //ParkSocketServer.removeClient(socketClient);
-                    //ParkSocketServer.removeClientsCount();
-                    //SocketUtils.closeSocket(socketClient.getSocket());
-                    //BizUnitTool.clientBizService.updatePostComputerStatus(socketClient.getPostComputerManage(),0);
-                    LOGGER.info("心跳发送失败,原因", ex.getMessage());
+
                 }
 
             }catch (InterruptedException e) {

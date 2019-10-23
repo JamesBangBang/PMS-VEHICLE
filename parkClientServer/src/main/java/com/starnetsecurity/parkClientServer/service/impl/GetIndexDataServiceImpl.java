@@ -262,8 +262,7 @@ public class GetIndexDataServiceImpl implements GetIndexDataService {
 
     @Override
     public void deleteUselessData() {
-        Long beginL = CommonUtils.getTodayStartTimeStamp().getTime() - 5 * 24 * 60 * 60 * 1000L;
-        Timestamp beginTime = new Timestamp(beginL);
+        Timestamp beginTime = Timestamp.valueOf("2019-09-19 00:00:00");
         String hql = "from OrderInoutRecord where outRecordId is null and inTime <= ? and carpark_name = ?";
         List<OrderInoutRecord> list = (List<OrderInoutRecord>)baseDao.queryForList(hql,beginTime,"金山园区");
         if (list != null && list.size() > 0){

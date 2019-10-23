@@ -111,7 +111,6 @@ public class SocketUtils {
             //LOGGER.info("向[{}]:[{}]发送[{}]个字节数据成功:{}",socket.getInetAddress(),socket.getPort(),msg.length(),msg);
             return msg.length();
         }catch (IOException ex){
-            LOGGER.error("向[{}]:[{}]发送失败:{}",socket.getInetAddress(),socket.getPort(),iOExceptionMsg,ex);
             throw new BizException("数据发送异常:" + iOExceptionMsg);
         }
     }

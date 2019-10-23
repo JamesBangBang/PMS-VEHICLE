@@ -41,6 +41,7 @@ public class ServiceReTryQuartz {
                         for (WechatPayFailUrl wechatPayFailUrl : wechatPayFailUrlList) {
                             JSONObject orderElement = newOrderParkService.getOrderInfoByUrl(wechatPayFailUrl.getIsUsed(), wechatPayFailUrl.getUrl());
                             if (CommonUtils.isEmpty(orderElement)){
+                                newOrderParkService.deleteSuccessInfo(wechatPayFailUrl.getId());
                                 continue;
                             }
                             if (wechatPayFailUrl.getIsUsed().equals(0)) {

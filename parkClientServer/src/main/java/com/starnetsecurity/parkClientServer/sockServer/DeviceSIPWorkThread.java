@@ -122,7 +122,6 @@ public class DeviceSIPWorkThread extends Thread {
                                             SIPUtils.responseCarPlateIndPrev(socketClient.getSocket(),request);
                                             break;
                                         case CarPlateInd:
-                                            //LOGGER.info("====================CarPlateInd");
                                             SIPXmlBizTool.dealCarPlateInd(rootElement,socketClient);
                                             SIPUtils.responseCarPlateInd(socketClient.getSocket(),request);
                                             break;
@@ -130,20 +129,6 @@ public class DeviceSIPWorkThread extends Thread {
                                             break;
 
                                     }
-                                } catch (DocumentException e) {
-                                    LOGGER.error("XML解析错误,body内容{}:",JSON.toJSONString(request),e);
-                                    continue;
-                                }catch (IllegalArgumentException e){
-                                    LOGGER.error("不支持的设备端业务:{}",JSON.toJSONString(request),e);
-                                    continue;
-                                } catch (NoSuchMethodException e) {
-                                    LOGGER.error("NoSuchMethodException异常:{}",JSON.toJSONString(request),e);
-                                } catch (IllegalAccessException e) {
-                                    LOGGER.error("IllegalAccessException异常:{}",JSON.toJSONString(request),e);
-                                } catch (InvocationTargetException e) {
-                                    LOGGER.error("InvocationTargetException异常:{}",JSON.toJSONString(request),e);
-                                } catch (IOException e) {
-                                    LOGGER.error("IOException异常:{}",JSON.toJSONString(request),e);
                                 }catch (Exception e){
                                     LOGGER.error("Exception异常:{}",JSON.toJSONString(request),e);
                                     DeviceSIPServer.removeClient(socketClient);
@@ -159,7 +144,7 @@ public class DeviceSIPWorkThread extends Thread {
                     Thread.sleep(20);
                 }
             } catch (InterruptedException e) {
-                LOGGER.error("数据接收线程休眠异常:",e);
+
             } catch (BizException ex){
 
                 DeviceSIPServer.removeClient(socketClient);

@@ -580,15 +580,16 @@ public class ClientBizServiceImpl implements ClientBizService {
                         if (releaseMode.equals("1") || releaseMode.equals("2")) {
                             deviceBizService.PlayLedInfo(outCameraId, 1, playParams, ledDisplayConfig,ledType,ledId);
                         }
-
-                        JSONObject guideParam = new JSONObject();
-                        guideParam.put("inOutType",1);
-                        guideParam.put("carparkId",carparkId);
-                        guideParam.put("availableNum",carparkInfo.getAvailableCarSpace());
-                        guideParam.put("totalNum",carparkInfo.getTotalCarSpace());
-                        GuideScreenThread.setSuspend(true);
-                        GuideScreenThread.addPlayListInfo(guideParam);
-                        GuideScreenThread.setSuspend(false);
+                    }else {
+                        if ("on".equals(AppInfo.isUseGuideScreen)){
+                            JSONObject guideParam = new JSONObject();
+                            guideParam.put("deviceInfo",deviceInfo);
+                            guideParam.put("availableNum",carparkInfo.getAvailableCarSpace());
+                            guideParam.put("totalNum",carparkInfo.getTotalCarSpace());
+                            GuideScreenThread.setSuspend(true);
+                            GuideScreenThread.addPlayListInfo(guideParam);
+                            GuideScreenThread.setSuspend(false);
+                        }
                     }
                     //将数据传到云端
 
@@ -652,7 +653,7 @@ public class ClientBizServiceImpl implements ClientBizService {
             res = new JSONObject();
             res.put("data","1");
         } catch (Exception e) {
-            LOGGER.info("处理进出场记录失败");
+            LOGGER.error("处理进出场记录失败：" + e.getMessage());
         }
         return res;
     }
@@ -1416,7 +1417,6 @@ public class ClientBizServiceImpl implements ClientBizService {
                         chargeAmount = calculateFeeNewService.calculateParkingFeeNew(carPlate, useType, carnoColor, carparkInfo.getCarparkId(), chargeBeginTime, outTime);
                     }
                 }catch (Exception e){
-                    LOGGER.error("计费异常",e);
                     chargeAmount = 0D;
                 }
 

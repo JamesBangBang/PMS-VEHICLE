@@ -148,35 +148,35 @@ public class AppInfo implements ServletContextAware {
             cloudTransQueue = new ConcurrentLinkedQueue<>();
             CloudTransThread cloudTransThread = new CloudTransThread(newOrderParkService);
             cloudTransThread.start();
-            log.info("启动白名单数据上传服务");
+            //log.info("启动白名单数据上传服务");
             UploadWhiteListThread uploadWhiteListThread = new UploadWhiteListThread();
             uploadWhiteListThread.start();
-            log.info("启动白名单数据上传服务成功");
+            //log.info("启动白名单数据上传服务成功");
         }
 
-        log.info("启动设备服务");
+        //log.info("启动设备服务");
         DeviceSIPServer deviceSIPServer = new DeviceSIPServer();
         deviceSIPServer.start();
-        log.info("设备服务启动成功");
+        //log.info("设备服务启动成功");
 
-        log.info("启动LED空闲状态播报服务");
+        //log.info("启动LED空闲状态播报服务");
         LedPlayFreeInfoServer ledPlayFreeInfoServer = new LedPlayFreeInfoServer();
         ledPlayFreeInfoServer.start();
-        log.info("启动LED空闲状态播报服务成功");
+        //log.info("启动LED空闲状态播报服务成功");
 
-        log.info("启动客户端数据业务发送线程");
+        //log.info("启动客户端数据业务发送线程");
         ClientSendThread clientSendThread = new ClientSendThread();
         clientSendThread.start();
 
-        log.info("启动岗亭服务");
+        //log.info("启动岗亭服务");
         ParkSocketServer parkSocketServer = new ParkSocketServer();
         parkSocketServer.start();
-        log.info("岗亭服务启动成功");
+        //log.info("岗亭服务启动成功");
 
-        log.info("启动岗亭客户端心跳定时器");
+        //log.info("启动岗亭客户端心跳定时器");
         ClientHeartThread clientHeartThread = new ClientHeartThread();
         clientHeartThread.start();
-        log.info("岗亭客户端心跳定时器启动成功");
+        //log.info("岗亭客户端心跳定时器启动成功");
 
 
         parkLotDomain = Constant.getPropertie("parkLotDomain");
@@ -186,7 +186,7 @@ public class AppInfo implements ServletContextAware {
         if (isUseAllinpay.equals("1")){
             AllinQueryThread allinQueryThread = new AllinQueryThread(allinpayService);
             allinQueryThread.start();
-            log.info("启动定时查询通联订单服务成功");
+            //log.info("启动定时查询通联订单服务成功");
         }
         allinPayAppId = Constant.getPropertie("appId");
         allinpayClientId = Constant.getPropertie("clientId");
@@ -198,7 +198,7 @@ public class AppInfo implements ServletContextAware {
         guideScreenPos = Integer.valueOf(Constant.getPropertie("guideScreenPos"));
         if ("1".equals(isUseGuideScreen)){
             GuideScreenThread guideScreenThread = new GuideScreenThread();
-            log.info("启动车位引导屏服务成功");
+            //log.info("启动车位引导屏服务成功");
             guideScreenThread.start();
         }
     }

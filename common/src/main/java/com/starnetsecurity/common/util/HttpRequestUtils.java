@@ -91,7 +91,6 @@ public class HttpRequestUtils {
             in.close();
             tempStr = bankXmlBuffer.toString();
         } catch (Exception e) {
-            logger.error("发送GET请求出现异常！", e);
         } finally {
             if (url_con != null)
                 url_con.disconnect();
@@ -166,14 +165,12 @@ public class HttpRequestUtils {
                 responseText = EntityUtils.toString(entity);
             }
         } catch (Exception ex) {
-            logger.error("post request occur error:", ex);
             throw ex;
         } finally {
             try {
                 client.close();
                 response.close();
             } catch (Exception e) {
-                logger.error("close request response occur error:", e);
             }
         }
         return responseText;
@@ -209,14 +206,13 @@ public class HttpRequestUtils {
                 responseText = EntityUtils.toString(entity);
             }
         } catch (Exception ex) {
-            logger.error("post request occur error:", ex);
             throw ex;
         } finally {
             try {
                 client.close();
                 response.close();
             } catch (Exception e) {
-                logger.error("close request response occur error:", e);
+
             }
         }
         return responseText;
@@ -238,14 +234,12 @@ public class HttpRequestUtils {
                 responseText = EntityUtils.toString(entity);
             }
         } catch (Exception ex) {
-            logger.error("post request occur error:", ex);
             throw ex;
         } finally {
             try {
                 client.close();
                 response.close();
             } catch (Exception e) {
-                logger.error("close request response occur error:", e);
             }
         }
         return responseText;
@@ -267,14 +261,12 @@ public class HttpRequestUtils {
                 responseText = EntityUtils.toString(entity);
             }
         } catch (Exception ex) {
-            logger.error("post request occur error:", ex);
             throw ex;
         } finally {
             try {
                 client.close();
                 response.close();
             } catch (Exception e) {
-                logger.error("close request response occur error:", e);
             }
         }
         return responseText;
@@ -300,14 +292,12 @@ public class HttpRequestUtils {
                 responseText = EntityUtils.toString(entity);
             }
         } catch (Exception ex) {
-            logger.error("post request occur error:", ex);
             throw ex;
         } finally {
             try {
                 client.close();
                 response.close();
             } catch (Exception e) {
-                logger.error("close request response occur error:", e);
             }
         }
         return responseText;

@@ -30,7 +30,7 @@ public class ParkWebSocketHandler implements WebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession webSocketSession) throws Exception {
-        //log.info("接入新用户.......");
+        ////log.info("接入新用户.......");
 
     }
 
@@ -46,7 +46,7 @@ public class ParkWebSocketHandler implements WebSocketHandler {
             webSocketUser.setAdminUser(adminUser);
             webSocketUser.setWebSocketSession(webSocketSession);
             socketUser.add(webSocketUser);
-            //log.info("标识登录用户:{}",adminUser.getUserName());
+            ////log.info("标识登录用户:{}",adminUser.getUserName());
         }
 
     }

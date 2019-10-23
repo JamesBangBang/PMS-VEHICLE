@@ -38,7 +38,6 @@ public class CloudTransThread extends Thread{
                 CloudTransPackage cloudTransPackage = AppInfo.cloudTransQueue.poll();
                 switch (cloudTransPackage.getCloudTransEnum()){
                     case inPark: {
-                        LOGGER.info("推送入场信息");
                         JSONObject inParkElement = cloudTransPackage.getUploadData();
                         try {
                             String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/orderInfo/uploadInParkOrder",inParkElement);
@@ -56,7 +55,6 @@ public class CloudTransThread extends Thread{
                         break;
                     }
                     case outPark: {
-                        LOGGER.info("推送出场信息");
                         JSONObject outParkElement = cloudTransPackage.getUploadData();
                         try {
                             String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/orderInfo/uploadOutParkOrder",outParkElement);
@@ -74,7 +72,6 @@ public class CloudTransThread extends Thread{
                         break;
                     }
                     case chargeInTime:{
-                        LOGGER.info("AB车缴费时间");
                         JSONObject chargeInTimeElement = cloudTransPackage.getUploadData();
                         try {
                             String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/orderInfo/uploadInChargeTimeOrder",chargeInTimeElement);
@@ -92,7 +89,6 @@ public class CloudTransThread extends Thread{
                         break;
                     }
                     case liftRod: {
-                        LOGGER.info("推送抬闸信息");
                         break;
                     }
                     case uparkBillPush:{

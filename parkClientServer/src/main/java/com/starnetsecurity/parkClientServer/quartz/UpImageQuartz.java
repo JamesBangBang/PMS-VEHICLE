@@ -21,14 +21,12 @@ public class UpImageQuartz {
 
     public void run() {
         try {
-            LOGGER.info("七牛云图片上传定时器启动");
             try{
                 upImageService.updateUpload24HourImage();
             }catch (BizException ex){
                 LOGGER.error(ex.getMessage());
             }
         } catch (Exception ex) {
-            LOGGER.error("七牛云图片上传定时器错误:", ex);
         }
     }
 }

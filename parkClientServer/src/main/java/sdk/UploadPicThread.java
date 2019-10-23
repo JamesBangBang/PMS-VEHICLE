@@ -81,9 +81,7 @@ public class UploadPicThread extends Thread {
                     break;
                 }
             }catch (BizException e){
-                LOGGER.error(e.getMessage());
             }catch (IOException e){
-                LOGGER.error("图片上传IO异常，路径：{}",this.picPath,e);
             }
             try {
                 Thread.sleep(20000);

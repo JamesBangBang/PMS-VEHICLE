@@ -217,7 +217,6 @@ public class MongoBaseDao<T> {
             }
         }
 
-        LOGGER.info("query condition :{}", query.toString());
         return query;
     }
 

@@ -71,7 +71,7 @@ public class RabbitQueueListenerThread extends Thread {
             }
 
         } catch (IOException e) {
-            log.info("消息队列接收监听器启动IO异常，queueName：{}，errorMsg：",queueName,e);
+            //log.info("消息队列接收监听器启动IO异常，queueName：{}，errorMsg：",queueName,e);
         }
         while (AppInfo.rabbitMqStatus){
             try {
@@ -105,16 +105,16 @@ public class RabbitQueueListenerThread extends Thread {
                             break;
                     }
                 }
-                log.info("收到队列：{} 的消息：{}",queueName,body);
+                //log.info("收到队列：{} 的消息：{}",queueName,body);
                 this.channel.basicAck(this.delivery.getEnvelope().getDeliveryTag(), false);
             } catch (InterruptedException e) {
-                log.info("消息队列接收监听器接收异常，queueName：{}，errorMsg：",queueName,e);
+                //log.info("消息队列接收监听器接收异常，queueName：{}，errorMsg：",queueName,e);
                 checkQueueAndReopen();
             } catch (IOException e) {
-                log.info("消息队列接收监听器接收IO异常，queueName：{}，errorMsg：",queueName,e);
+                //log.info("消息队列接收监听器接收IO异常，queueName：{}，errorMsg：",queueName,e);
                 checkQueueAndReopen();
             }catch (Exception e){
-                log.info("消息队列接收监听器未知异常：",e);
+                //log.info("消息队列接收监听器未知异常：",e);
                 checkQueueAndReopen();
             }
         }
@@ -131,9 +131,9 @@ public class RabbitQueueListenerThread extends Thread {
                 this.consumer = new QueueingConsumer(this.channel);
                 this.channel.basicConsume(queueName, false, this.consumer);
             } catch (IOException e) {
-                log.info("消息队列接收监听器再次启动IO异常，queueName：{}，errorMsg：",queueName,e);
+                //log.info("消息队列接收监听器再次启动IO异常，queueName：{}，errorMsg：",queueName,e);
             }catch (BizException e){
-                log.info("消息队列接收监听异常，queueName：{}，errorMsg：",queueName,e);
+                //log.info("消息队列接收监听异常，queueName：{}，errorMsg：",queueName,e);
             }
             try {
                 Thread.sleep(5000);
