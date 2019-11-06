@@ -8,6 +8,7 @@ import com.starnetsecurity.commonService.util.DeviceManageUtils;
 import com.starnetsecurity.commonService.util.StarnetDeviceUtils;
 import com.starnetsecurity.parkClientServer.clientEnum.LogEnum;
 import com.starnetsecurity.parkClientServer.entity.*;
+import com.starnetsecurity.parkClientServer.entityEnum.payStatusEnum;
 import com.starnetsecurity.parkClientServer.init.AppInfo;
 import com.starnetsecurity.parkClientServer.service.*;
 import org.apache.commons.lang3.StringUtils;
@@ -443,8 +444,8 @@ public class OrderParkServiceImpl implements OrderParkService {
         OrderInoutRecord orderInoutRecord = clientBizService.GetMatchInfo(outCarno,carparkId,reChargeOutTime);
         if (!CommonUtils.isEmpty(orderInoutRecord)){
             BigDecimal accountSum = new BigDecimal("0");
-            String accountHql = "from OrderTransaction where orderId = ? order by addTime desc";
-            List<OrderTransaction> orderTransactionList = (List<OrderTransaction>)baseDao.queryForList(accountHql,orderInoutRecord.getChargeInfoId());
+            String accountHql = "from OrderTransaction where orderId = ? and payStatus = ? order by addTime desc";
+            List<OrderTransaction> orderTransactionList = (List<OrderTransaction>)baseDao.queryForList(accountHql,orderInoutRecord.getChargeInfoId(), payStatusEnum.HAS_PAID);
             if (orderTransactionList.size() > 0) {
                 //流水表收费总金额
                 for (OrderTransaction orderTransaction : orderTransactionList){
