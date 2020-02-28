@@ -298,21 +298,16 @@ public class WhiteListServiceImpl implements WhiteListService{
                         whiteParams.put("end", CommonUtils.formatTimeStamp("yyyy-MM-dd HH:mm:ss", memberWallet.getEffectiveEndTime()));
                         DeviceManageUtils deviceManageUtils = new StarnetDeviceUtils();
 
-                        hql = "from InOutCarRoadInfo where ownCarparkNo = ?";
-                        String ipcListInfo = "";
+                        hql = "from InOutCarRoadInfo where ownCarparkNo = ? and useMark >= 0";
                         List<InOutCarRoadInfo> carRoadInfos = (List<InOutCarRoadInfo>) hibernateBaseDao.queryForList(hql, carparkId);
                         for (InOutCarRoadInfo carRoadInfo : carRoadInfos) {
                             hql = "from DeviceInfo where ownCarRoad = ? and deviceType = '0' and useMark >= 0";
                             List<DeviceInfo> deviceInfos = (List<DeviceInfo>) hibernateBaseDao.queryForList(hql, carRoadInfo.getCarRoadId());
                             for (DeviceInfo deviceInfo : deviceInfos) {
                                 deviceManageUtils.addWhiteMember(deviceInfo.getDeviceIp(), Integer.parseInt(deviceInfo.getDevicePort()), deviceInfo.getDeviceUsername(), deviceInfo.getDevicePwd(), whiteParams);
-                                ipcListInfo = ipcListInfo + deviceInfo.getDeviceId() + ",";
                             }
                         }
-                        if (!StringUtils.isBlank(ipcListInfo)) {
-                            ipcListInfo = ipcListInfo.substring(0, ipcListInfo.length() - 1);
-                            memberWallet.setSynchronizeIpcList(ipcListInfo);
-                        }
+                        memberWallet.setSynchronizeIpcList("WhiteList");
                     }
                 }
                 hibernateBaseDao.save(memberWallet);
@@ -327,13 +322,9 @@ public class WhiteListServiceImpl implements WhiteListService{
     @Override
     public void delOwner(String id,String ip) {
         try {
+            //园区的直接删除
             MemberWallet memberWallet = (MemberWallet)hibernateBaseDao.getById(MemberWallet.class,id);
-            if ("on".equals(AppInfo.isConnectCloud)) {
-                memberWallet.setUseMark(-1);
-                hibernateBaseDao.update(memberWallet);
-            }else {
-                hibernateBaseDao.deleteById(MemberWallet.class,id);
-            }
+            hibernateBaseDao.deleteById(MemberWallet.class,id);
             if(memberWallet.getPackKindId().equals(0) || memberWallet.getPackKindId().equals(-3)){
                 String[] carNos = memberWallet.getMenberNo().split(",");
                 if(carNos.length == 1){
@@ -341,7 +332,7 @@ public class WhiteListServiceImpl implements WhiteListService{
                     whiteParams.put("plate",memberWallet.getMenberNo());
                     DeviceManageUtils deviceManageUtils = new StarnetDeviceUtils();
 
-                    String hql = "from InOutCarRoadInfo where ownCarparkNo = ?";
+                    String hql = "from InOutCarRoadInfo where ownCarparkNo = ? and useMark >= 0";
                     List<InOutCarRoadInfo> carRoadInfos = (List<InOutCarRoadInfo>)hibernateBaseDao.queryForList(hql,memberWallet.getCarPark());
                     for(InOutCarRoadInfo carRoadInfo : carRoadInfos){
                         hql = "from DeviceInfo where ownCarRoad = ? and deviceType = '0' and useMark >= 0";
@@ -429,10 +420,7 @@ public class WhiteListServiceImpl implements WhiteListService{
                 memberWallet.setMenberTypeId((String)params.get("memberKindId"));
                 memberWallet.setPackKindId(memberKind.getPackageKind());
                 memberWallet.setPackChlidKind(memberKind.getPackageChildKind());
-                if(memberKind.getPackageKind().equals(0)){
-                    memberWallet.setEffectiveStartTime(Timestamp.valueOf((String)params.get("startTime") + " 00:00:00"));
-                    memberWallet.setEffectiveEndTime(Timestamp.valueOf((String)params.get("endTime") + " 23:59:59"));
-                }else if(memberKind.getPackageKind().equals(1)){
+                if(memberKind.getPackageKind().equals(1)){
                     memberWallet.setSurplusNumber(Integer.parseInt((String)params.get("surplusNumber")) + memberWallet.getSurplusNumber());
                 }else if(memberKind.getPackageKind().equals(2)){
                     memberWallet.setSurplusAmount(Double.parseDouble((String)params.get("surplusAmount")) + memberWallet.getSurplusAmount());
@@ -455,6 +443,7 @@ public class WhiteListServiceImpl implements WhiteListService{
             memberWallet.setDriverTelephoneNumber(params.getString("driverTelephoneNumber"));
 
             String[] carNos = (memberWallet.getMenberNo()).split(",");
+            memberWallet.setSynchronizeIpcList(null);
             if(memberWallet.getPackKindId().equals(0) || memberKind.getPackageKind().equals(-3)){
                 if(carNos.length == 1){
                     JSONObject whiteParams = new JSONObject();
@@ -467,24 +456,18 @@ public class WhiteListServiceImpl implements WhiteListService{
                     whiteParams.put("end",CommonUtils.formatTimeStamp("yyyy-MM-dd HH:mm:ss",memberWallet.getEffectiveEndTime()));
                     DeviceManageUtils deviceManageUtils = new StarnetDeviceUtils();
 
-                    String hql = "from InOutCarRoadInfo where ownCarparkNo = ?";
-                    String ipcListInfo = "";
+                    String hql = "from InOutCarRoadInfo where ownCarparkNo = ? and useMark >= 0";
                     List<InOutCarRoadInfo> carRoadInfos = (List<InOutCarRoadInfo>)hibernateBaseDao.queryForList(hql,memberWallet.getCarPark());
                     for(InOutCarRoadInfo carRoadInfo : carRoadInfos){
                         hql = "from DeviceInfo where ownCarRoad = ? and deviceType = '0' and useMark >= 0";
                         List<DeviceInfo> deviceInfos = (List<DeviceInfo>)hibernateBaseDao.queryForList(hql,carRoadInfo.getCarRoadId());
                         for(DeviceInfo deviceInfo : deviceInfos){
                             deviceManageUtils.updateWhiteMember(deviceInfo.getDeviceIp(),Integer.parseInt(deviceInfo.getDevicePort()),deviceInfo.getDeviceUsername(),deviceInfo.getDevicePwd(),whiteParams);
-                            ipcListInfo = ipcListInfo + deviceInfo.getDeviceId() + ",";
                         }
                     }
-                    if (!StringUtils.isBlank(ipcListInfo)){
-                        ipcListInfo = ipcListInfo.substring(0,ipcListInfo.length()-1);
-                        memberWallet.setSynchronizeIpcList(ipcListInfo);
-                    }
+                    memberWallet.setSynchronizeIpcList("WhiteList");
                 }
-            }else
-                memberWallet.setSynchronizeIpcList("");
+            }
 
             memberWallet.setUseMark(1);
             hibernateBaseDao.update(memberWallet);
@@ -596,7 +579,7 @@ public class WhiteListServiceImpl implements WhiteListService{
             sql = putTogetherLikeSql(sql, "t1.driver_info", "driverInfo", driverInfo);
             sql = putTogetherInSql(sql, "t1.department_id", "depId", depId);
             sql = putTogetherInSql(sql, "t1.pack_kind_id", "packageKind", packageKind);
-            sql = sql + " order by t1.car_park desc";
+            sql = sql + " order by t1.car_park ,t1.menber_type_id ";
 
             SQLQuery sqlQuery = hibernateBaseDao.getHibernateTemplate().getSessionFactory().getCurrentSession().createSQLQuery(sql);
             setParameterToQuery(sqlQuery, "carparkId", carparkId);
@@ -616,44 +599,43 @@ public class WhiteListServiceImpl implements WhiteListService{
 
     @Override
     public void saveOwnerList(List<Map<String, Object>> list, AdminUser adminUser) throws BizException {
-        /*
-        * 清空driver和MemberWallet会员信息
-        * 清除ipc里会员信息
-        *
-        * */
-        if ("on".equals(AppInfo.isConnectCloud)) {
-            UploadWhiteListThread.setSuspend(true);
-        }
-
-        int i = 3;
+        Long beginLong = CommonUtils.getTimestamp().getTime();
+        int i= 3;
         try{
             String hqlmem = "from MemberWallet where useMark >= 0 and ((packKindId = 0) or (packKindId = 1) or (packKindId = 2) or (packKindId = -3))";
             List<MemberWallet> memberWallets = ( List<MemberWallet>)hibernateBaseDao.queryForList(hqlmem);
             for(MemberWallet memberWallet : memberWallets){
-                if ("on".equals(AppInfo.isConnectCloud)) {
-                    memberWallet.setUseMark(-1);
-                    hibernateBaseDao.update(memberWallet);
-                    UploadWhiteListThread.addWhiteListInfo(memberWallet);
-                }else {
-                    hibernateBaseDao.deleteById(MemberWallet.class,memberWallet.getId());
-                }
+                hibernateBaseDao.deleteById(MemberWallet.class,memberWallet.getId());
             }
 
             int importCount = 1;
 
             String hql = "from DepartmentInfo";
             DepartmentInfo departmentInfo = ((List<DepartmentInfo>)hibernateBaseDao.queryForList(hql)).get(0);
-
+            //获取初始车场信息
             String carparkName = ((String) list.get(3).get("value2")).replaceAll("\\s*","");
             String  hql_CarparkInfo = "from CarparkInfo where carparkName  =? and useMark >= 0";
             CarparkInfo carparkInfo = (CarparkInfo)hibernateBaseDao.getUnique(hql_CarparkInfo,carparkName);
             String carparkId = CommonUtils.isEmpty(carparkInfo) ? "" : carparkInfo.getCarparkId();
+            //获取初始车道信息
             String road_hql = "from InOutCarRoadInfo where ownCarparkNo = ? and useMark >= 0";
             List<InOutCarRoadInfo> carRoadInfoList = (List<InOutCarRoadInfo>)hibernateBaseDao.queryForList(road_hql,carparkId);
+            //获取初始的收费类型信息
+            String memberKindName = ((String) list.get(3).get("value6")).replaceAll("\\s*","");
+            String  memberKindHql = "from MemberKind where kindName  =? and useMark >= 0";
+            MemberKind memberKind = (MemberKind)hibernateBaseDao.getUnique(memberKindHql,memberKindName);
+            if(CommonUtils.isEmpty(memberKind)){
+                throw new BizException("收费类型不存在，收费名称为：" + memberKind.getKindName());
+            }
+            String  memberKindId = memberKind.getId();
+            //获取附属设备
+            String deviceHql = "from DeviceInfo where subIpcId is not null and subIpcId <> '' and deviceType = '0' and useMark >= 0";
+            List<DeviceInfo> subDeviceInfoList = (List<DeviceInfo>)hibernateBaseDao.queryForList(deviceHql);
 
             List<JSONObject> whiteImportList = new ArrayList<>();
+            //需要导入的设备列表
             JSONObject whiteParamsList = new JSONObject();
-            for (; i < list.size(); i++) {
+            for (i = 3; i < list.size(); i++) {
                 //组合插入会员的数据
                 Map<String,Object> params = new HashMap<>();
                 String carNo1 = ((String) list.get(i).get("value1")).replaceAll("\\s*","");
@@ -661,12 +643,15 @@ public class WhiteListServiceImpl implements WhiteListService{
                 //车场发生变化
                 if (!carparkNameAfter.equals(carparkName)){
                     //之前的车场要下发
+                    System.out.println("新车场：" + carparkNameAfter + " 老车场：" + carparkName);
                     if (whiteParamsList != null){
                         for(InOutCarRoadInfo carRoadInfo : carRoadInfoList){
+                            System.out.println("车道名称：" + carRoadInfo.getCarRoadName());
                             String dev_hql = "from DeviceInfo where ownCarRoad = ? and deviceType = '0' and useMark >= 0";
                             List<DeviceInfo> deviceInfos = (List<DeviceInfo>)hibernateBaseDao.queryForList(dev_hql,carRoadInfo.getCarRoadId());
                             for(DeviceInfo deviceInfo : deviceInfos){
                                 JSONObject whiteImportParams = new JSONObject();
+                                whiteImportParams.put("deviceId",deviceInfo.getDeviceId());
                                 whiteImportParams.put("ip",deviceInfo.getDeviceIp());
                                 whiteImportParams.put("port",deviceInfo.getDevicePort());
                                 whiteImportParams.put("username",deviceInfo.getDeviceUsername());
@@ -687,6 +672,16 @@ public class WhiteListServiceImpl implements WhiteListService{
                     carRoadInfoList = (List<InOutCarRoadInfo>)hibernateBaseDao.queryForList(road_hql,carparkId);
                 }
 
+                String memberKindNameAfter = ((String) list.get(i).get("value6")).replaceAll("\\s*","");
+                if (!memberKindNameAfter.equals(memberKindName)){
+                    memberKind = (MemberKind)hibernateBaseDao.getUnique(memberKindHql,memberKindNameAfter);
+                    if(CommonUtils.isEmpty(memberKind)){
+                        throw new BizException("收费类型不存在，收费名称为：" + memberKind.getKindName());
+                    }
+                    memberKindId = memberKind.getId();
+                    memberKindName = memberKindNameAfter;
+                }
+
                 String driverName = ((String) list.get(i).get("value3")).replaceAll("\\s*","");
 
                 String driverTelephoneNumber = null;
@@ -698,16 +693,7 @@ public class WhiteListServiceImpl implements WhiteListService{
                     driverTelephoneNumber =((String) list.get(i).get("value4")).replaceAll("\\s*","");
                 }
                 String driverInfo=((String) list.get(i).get("value5")).replaceAll("\\s*","");
-                String merberKindName=((String) list.get(i).get("value6")).replaceAll("\\s*","");
-                String  hql_MemberKind = "from MemberKind where kindName  =? and useMark >= 0";
-                MemberKind memberKind1 = (MemberKind)hibernateBaseDao.getUnique(hql_MemberKind,merberKindName);
-                if(CommonUtils.isEmpty(memberKind1)){
-                    throw new BizException("套餐不存在");
-                }
-                String  memberKindId=null;
-                if(!CommonUtils.isEmpty(memberKind1)){
-                    memberKindId=memberKind1.getId();
-                }
+
 
                 String startTime="";
                 String endTime="";
@@ -762,7 +748,6 @@ public class WhiteListServiceImpl implements WhiteListService{
                     }
                 }
 
-                MemberKind memberKind = (MemberKind)hibernateBaseDao.getById(MemberKind.class,(String)params.get("memberKindId"));
                 MemberWallet memberWallet = new MemberWallet();
                 memberWallet.setMenberNo((String)params.get("carNo"));
                 memberWallet.setDriverName((String) params.get("driverName"));
@@ -794,11 +779,8 @@ public class WhiteListServiceImpl implements WhiteListService{
                 memberWallet.setValidMenberCount(validCountNum);
                 memberWallet.setDepartmentId(departmentInfo.getDepId());
                 memberWallet.setUseMark(0);
-                if ("on".equals(AppInfo.isConnectCloud)) {
-                    UploadWhiteListThread.addWhiteListInfo(memberWallet);
-                }
 
-                if((memberWallet.getPackKindId().equals(0) || memberKind.getPackageKind().equals(-3)) && (carNos.length == 1)){
+                if((memberWallet.getPackKindId().equals(0) || memberWallet.getPackKindId().equals(-3)) && (carNos.length == 1)){
                     whiteParamsList.put("T_GroupId" + importCount,0);
                     whiteParamsList.put("T_owner" + importCount,memberWallet.getDriverName());
                     whiteParamsList.put("T_plate" + importCount,memberWallet.getMenberNo());
@@ -806,15 +788,17 @@ public class WhiteListServiceImpl implements WhiteListService{
                     whiteParamsList.put("T_start" + importCount,CommonUtils.formatTimeStamp("yyyy-MM-dd HH:mm:ss",memberWallet.getEffectiveStartTime()));
                     whiteParamsList.put("T_end" + importCount,CommonUtils.formatTimeStamp("yyyy-MM-dd HH:mm:ss",memberWallet.getEffectiveEndTime()));
                     importCount++;
-                    memberWallet.setSynchronizeIpcList("white");
+                    memberWallet.setSynchronizeIpcList("WhiteList");
                 }
                 hibernateBaseDao.save(memberWallet);
                 if (i == (list.size() - 1)){
                     for(InOutCarRoadInfo carRoadInfo : carRoadInfoList){
+                        System.out.println("车道名称：" + carRoadInfo.getCarRoadName());
                         String dev_hql = "from DeviceInfo where ownCarRoad = ? and deviceType = '0' and useMark >= 0";
                         List<DeviceInfo> deviceInfos = (List<DeviceInfo>)hibernateBaseDao.queryForList(dev_hql,carRoadInfo.getCarRoadId());
                         for(DeviceInfo deviceInfo : deviceInfos){
                             JSONObject whiteImportParams = new JSONObject();
+                            whiteImportParams.put("deviceId",deviceInfo.getDeviceId());
                             whiteImportParams.put("ip",deviceInfo.getDeviceIp());
                             whiteImportParams.put("port",deviceInfo.getDevicePort());
                             whiteImportParams.put("username",deviceInfo.getDeviceUsername());
@@ -827,21 +811,35 @@ public class WhiteListServiceImpl implements WhiteListService{
                 }
 
             }
-            if ("on".equals(AppInfo.isConnectCloud)) {
-                UploadWhiteListThread.setSuspend(false);
-            }
 
             if (whiteImportList != null && whiteImportList.size() > 0){
                 DeviceManageUtils deviceManageUtils = new StarnetDeviceUtils();
                 for (JSONObject jsonObject : whiteImportList){
+                    boolean isSubDevice = false;
+                    String deviceId = jsonObject.getString("deviceId");
+                    if (subDeviceInfoList != null && subDeviceInfoList.size() > 0){
+                        for (DeviceInfo subDeviceInfo : subDeviceInfoList){
+                            if (subDeviceInfo.getSubIpcId().equals(deviceId)){
+                                isSubDevice = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (isSubDevice){
+                        continue;
+                    }
                     String deviceIp = jsonObject.getString("ip");
                     Integer devicePort = Integer.valueOf(jsonObject.getString("port"));
                     String username = jsonObject.getString("username");
                     String password = jsonObject.getString("password");
                     Integer totalCount = Integer.valueOf(jsonObject.getString("count"));
+                    System.out.println(deviceIp + "：" + totalCount);
                     JSONObject whiteParams = jsonObject.getJSONObject("whiteParamsList");
                     deviceManageUtils.addWhiteMemberList(deviceIp,devicePort,username,password,whiteParams,totalCount);
                 }
+                Long endLong = CommonUtils.getTimestamp().getTime();
+                System.out.println("时间间隔为：" + ((endLong - beginLong)/1000));
             }
         }catch (TransactionException e){
             if ("on".equals(AppInfo.isConnectCloud)) {

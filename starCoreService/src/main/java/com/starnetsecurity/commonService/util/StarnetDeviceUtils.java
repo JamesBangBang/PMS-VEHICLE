@@ -366,6 +366,7 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
 
     @Override
     public void addWhiteMemberList(String ip,Integer port, String username, String password, JSONObject params,int count) {
+        Long beginLong = CommonUtils.getTimestamp().getTime();
         count--;
         String url = getCgiUrl(ip,port,"carwhitedata.cgi",null);
         String authorization = getAuthorization(username,password);
@@ -399,7 +400,7 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
                     .addHeader("Content-Length",body.contentLength() + "")
                     .build();
             Response response = client.newBuilder().connectTimeout(1000, TimeUnit.MILLISECONDS)
-                    .readTimeout(10000, TimeUnit.MILLISECONDS).build().newCall(request).execute();
+                    .readTimeout(5000, TimeUnit.MILLISECONDS).build().newCall(request).execute();
             switch (response.code()){
                 case 200:
                     String resBody = new String(response.body().bytes(),"GBK");
@@ -420,6 +421,9 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
             }
         } catch (IOException e) {
         }
+
+        Long endLong = CommonUtils.getTimestamp().getTime();
+        System.out.println("导入时间间隔为：" + ((endLong - beginLong)/1000));
     }
 
 

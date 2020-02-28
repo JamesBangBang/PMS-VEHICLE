@@ -186,7 +186,13 @@ public class NewOrderParkServiceImpl implements NewOrderParkService {
                 orderOldId = orderArr[2];
             }
             InoutRecordInfo inoutRecordInfo = (InoutRecordInfo) baseDao.getById(InoutRecordInfo.class,orderArr[0]);
+            if (CommonUtils.isEmpty(inoutRecordInfo)){
+                return null;
+            }
             OrderInoutRecord orderInoutRecord = (OrderInoutRecord) baseDao.getById(OrderInoutRecord.class,orderArr[1]);
+            if (CommonUtils.isEmpty(orderInoutRecord)){
+                return null;
+            }
             if (!CommonUtils.isEmpty(orderInoutRecord.getOutRecordId())){
                 //重传的时候已经出场
                 return null;
