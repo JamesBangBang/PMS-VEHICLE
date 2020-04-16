@@ -24,7 +24,6 @@ public class TimeSyncQuartz {
     public void run() {
         try {
             Integer successResult = 0;
-            LOGGER.info("时间同步定时器启动");
             String responseStr = HttpRequestUtils.post("http://" + AppInfo.parkLotDomain + "/config/getTimeStamp",null);
             if(StringUtils.isBlank(responseStr)){
                 throw new BizException("时间同步定时器，云服务器无信息返回");
@@ -39,8 +38,6 @@ public class TimeSyncQuartz {
 
                 cmd = " cmd /c time " + CommonUtils.formatTimeStamp("HH:mm:ss",date); // 格式 HH:mm:ss
                 Runtime.getRuntime().exec(cmd);
-
-                LOGGER.info("完成时间同步");
             }else{
                 String msg = responseObject.getString("msg");
                 throw new BizException("时间同步定时器，" + msg);

@@ -547,10 +547,16 @@ public class DeviceBizServiceImpl implements DeviceBizService {
                         if (uartDeviceAddr.equals("1") && (!StringUtils.isBlank(memberWallet.getSynchronizeIpcList()))){
                             //不用开闸
                         }else{
+                            if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
+                                LOGGER.info(carPlate + "在" +  inOutCarRoadInfo.getCarRoadName() + "开闸入场");
+                            }
                             deviceManageUtils.openRoadGate(socketClient.getDeviceInfo().getDeviceIp(), Integer.parseInt(socketClient.getDeviceInfo().getDevicePort()),
                                     socketClient.getDeviceInfo().getDeviceUsername(), socketClient.getDeviceInfo().getDevicePwd());
                         }
                     }else {
+                        if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
+                            LOGGER.info(carPlate + "在" +  inOutCarRoadInfo.getCarRoadName() + "开闸入场");
+                        }
                         deviceManageUtils.openRoadGate(socketClient.getDeviceInfo().getDeviceIp(), Integer.parseInt(socketClient.getDeviceInfo().getDevicePort()),
                                 socketClient.getDeviceInfo().getDeviceUsername(), socketClient.getDeviceInfo().getDevicePwd());
                     }
@@ -844,10 +850,16 @@ public class DeviceBizServiceImpl implements DeviceBizService {
                             if (uartDeviceAddr.equals("1") && (!StringUtils.isBlank(memberWallet.getSynchronizeIpcList()))){
                                 //不用开闸
                             }else{
+                                if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
+                                    LOGGER.info(carPlate + "在" +  inOutCarRoadInfo.getCarRoadName() + "开闸出场");
+                                }
                                 deviceManageUtils.openRoadGate(socketClient.getDeviceInfo().getDeviceIp(),Integer.parseInt(socketClient.getDeviceInfo().getDevicePort()),
                                         socketClient.getDeviceInfo().getDeviceUsername(),socketClient.getDeviceInfo().getDevicePwd());
                             }
                         }else {
+                            if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
+                                LOGGER.info(carPlate + "在" +  inOutCarRoadInfo.getCarRoadName() + "开闸出场");
+                            }
                             deviceManageUtils.openRoadGate(socketClient.getDeviceInfo().getDeviceIp(),Integer.parseInt(socketClient.getDeviceInfo().getDevicePort()),
                                     socketClient.getDeviceInfo().getDeviceUsername(),socketClient.getDeviceInfo().getDevicePwd());
                         }

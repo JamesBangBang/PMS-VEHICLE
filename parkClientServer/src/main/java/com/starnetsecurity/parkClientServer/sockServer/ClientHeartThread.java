@@ -52,9 +52,9 @@ public class ClientHeartThread extends Thread {
                 LOGGER.error("心跳包间隔异常",e);
             }catch(Exception e){
                 if(socketClient != null){
-                    LOGGER.info("心跳线未知异常，IP{}",socketClient.getSocket().getInetAddress().getHostAddress(),e);
+                    LOGGER.error("心跳线未知异常，IP{}",socketClient.getSocket().getInetAddress().getHostAddress(),e);
                 }else{
-                    LOGGER.info("心跳线未知异常，IP = null ",e);
+                    LOGGER.error("心跳线未知异常，IP = null ",e);
                 }
             }
         }

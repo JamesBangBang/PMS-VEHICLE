@@ -29,10 +29,7 @@ public class ParkWebSocketHandler implements WebSocketHandler {
     UserService userService;
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession webSocketSession) throws Exception {
-        ////log.info("接入新用户.......");
-
-    }
+    public void afterConnectionEstablished(WebSocketSession webSocketSession) throws Exception {}
 
     @Override
     public void handleMessage(WebSocketSession webSocketSession, WebSocketMessage<?> webSocketMessage) throws Exception {
@@ -46,7 +43,6 @@ public class ParkWebSocketHandler implements WebSocketHandler {
             webSocketUser.setAdminUser(adminUser);
             webSocketUser.setWebSocketSession(webSocketSession);
             socketUser.add(webSocketUser);
-            ////log.info("标识登录用户:{}",adminUser.getUserName());
         }
 
     }

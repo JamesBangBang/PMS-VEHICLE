@@ -8,6 +8,7 @@ import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.SQLQuery;
 import org.hibernate.transform.Transformers;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,9 +16,11 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 @Service
 public class RealRecordsServiceImpl implements RealRecordsService {
+    private static org.slf4j.Logger logger = LoggerFactory.getLogger(RealRecordsServiceImpl.class);
 
     @Autowired
     HibernateBaseDao baseDao;
@@ -376,6 +379,7 @@ public class RealRecordsServiceImpl implements RealRecordsService {
                 carparkInfo.setCarparkNo(carparkInfo.getCarparkNo()+1);
                 baseDao.save(carparkInfo);
             }
+            logger.info("删除" + carparkName + "的场内车辆" + carNo);
         }
     }
 

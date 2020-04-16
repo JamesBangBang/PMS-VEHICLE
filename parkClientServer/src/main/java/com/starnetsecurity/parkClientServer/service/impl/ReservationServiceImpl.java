@@ -353,7 +353,7 @@ public class ReservationServiceImpl implements ReservationService{
                 }
             }
         } catch (Exception e) {
-            LOGGER.info("获取预约车申请列表失败");
+            LOGGER.error("获取预约车申请列表失败");
         }
         return res;
     }

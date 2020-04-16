@@ -48,25 +48,18 @@ public class TokenFilter extends AccessControlFilter {
             if ( token == null || StringUtils.isBlank(token) || "undefined".equals(token)) {
                 return true;
             }
-            LOGGER.info("用户提交token:{}", token);
             try {
                 Timestamp now = CommonUtils.getTimestamp();
                 Constant.setPropertie("token",token);
                 token = AesUtil.decodeToken(token);
                 JSONObject jsonToken = JSON.parseObject(token);
                 Timestamp tokenTime = new Timestamp(Long.parseLong(jsonToken.getString("loginTime")));
-
-                /*if((now.getTime() - tokenTime.getTime()) > (2 * 60 * 60 * 1000)){
-                    LOGGER.info("token登录超时,用户信息username:{}",jsonToken.getString("username"));
-                    return false;
-                }*/
                 String username = jsonToken.getString("username");
                 String password = jsonToken.getString("password");
                 MultipleAuthenticationToken multipleAuthenticationToken = new MultipleAuthenticationToken(username,password);
                 multipleAuthenticationToken.setTokenStr(token);
                 multipleAuthenticationToken.setLoginType(1);
                 subject.login(multipleAuthenticationToken);
-                LOGGER.info("用户[{}]通过token授权登录",username);
 
                 return true;
             }  catch (IncorrectCredentialsException ex) {

@@ -46,7 +46,7 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
         return null;
     }
 
-    public static String post(String url, Map<String,Object> paramsMap,String authorization) {
+    public static Integer post(String url, Map<String,Object> paramsMap,String authorization) {
 
         StringBuffer params = new StringBuffer("");
         if(!CommonUtils.isEmpty(paramsMap)) {
@@ -77,7 +77,8 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
                     .build();
             Response response = client.newBuilder().connectTimeout(500, TimeUnit.MILLISECONDS)
                     .readTimeout(5000, TimeUnit.MILLISECONDS).build().newCall(request).execute();
-            switch (response.code()){
+            return response.code();
+            /*switch (response.code()){
                 case 200:
                     String resBody = new String(response.body().bytes(),"GBK");
                     response.body().close();
@@ -94,11 +95,10 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
                 case 500:
                     response.body().close();
                     return null;
-            }
+            }*/
         } catch (IOException e) {
-
+            return 201;
         }
-        return null;
     }
 
     public static int postThread(String uri, Map<String,Object> paramsMap,String authorization) {
@@ -359,9 +359,9 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
     }
 
     @Override
-    public void addWhiteMember(String ip,Integer port, String username, String password, JSONObject params) {
+    public Integer addWhiteMember(String ip,Integer port, String username, String password, JSONObject params) {
         params.put("action","add");
-        post(getCgiUrl(ip,port,"carwhitedata.cgi",null),params,getAuthorization(username,password));
+        return post(getCgiUrl(ip,port,"carwhitedata.cgi",null),params,getAuthorization(username,password));
     }
 
     @Override
@@ -428,9 +428,9 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
 
 
     @Override
-    public void delWhiteMember(String ip,Integer port, String username, String password, JSONObject params) {
+    public Integer delWhiteMember(String ip,Integer port, String username, String password, JSONObject params) {
         params.put("action","delete");
-        post(getCgiUrl(ip,port,"carwhitedata.cgi",null),params,getAuthorization(username,password));
+        return post(getCgiUrl(ip,port,"carwhitedata.cgi",null),params,getAuthorization(username,password));
     }
 
     @Override
@@ -440,9 +440,9 @@ public class StarnetDeviceUtils implements DeviceManageUtils {
     }
 
     @Override
-    public void updateWhiteMember(String ip,Integer port, String username, String password, JSONObject params) {
+    public Integer updateWhiteMember(String ip,Integer port, String username, String password, JSONObject params) {
         params.put("action","update");
-        post(getCgiUrl(ip,port,"carwhitedata.cgi",null),params,getAuthorization(username,password));
+        return post(getCgiUrl(ip,port,"carwhitedata.cgi",null),params,getAuthorization(username,password));
     }
 
     @Override

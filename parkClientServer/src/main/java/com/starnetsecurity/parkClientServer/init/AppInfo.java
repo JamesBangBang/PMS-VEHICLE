@@ -6,12 +6,9 @@ import com.starnetsecurity.parkClientServer.allinpay.AllinQueryThread;
 import com.starnetsecurity.parkClientServer.cloudTransport.CloudTransPackage;
 import com.starnetsecurity.parkClientServer.cloudTransport.CloudTransThread;
 import com.starnetsecurity.parkClientServer.quartz.UploadWhiteListThread;
-import com.starnetsecurity.parkClientServer.service.AllinpayService;
-import com.starnetsecurity.parkClientServer.service.BasicDataSyncService;
-import com.starnetsecurity.parkClientServer.service.NewOrderParkService;
+import com.starnetsecurity.parkClientServer.service.*;
 import com.starnetsecurity.parkClientServer.sockServer.*;
 import com.starnetsecurity.parkClientServer.mq.ParkLotConsumerConfiguration;
-import com.starnetsecurity.parkClientServer.service.OrderParkService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,21 +95,21 @@ public class AppInfo implements ServletContextAware {
     public static Integer guideScreenPos;
 
     @Autowired
-    BasicDataSyncService basicDataSyncService;
+    private BasicDataSyncService basicDataSyncService;
 
     @Autowired
-    OrderParkService orderParkService;
+    private OrderParkService orderParkService;
 
     @Autowired
-    NewOrderParkService newOrderParkService;
+    private NewOrderParkService newOrderParkService;
 
     @Autowired
-    AllinpayService allinpayService;
+    private AllinpayService allinpayService;
 
+    @Autowired
+    private DeviceManageService deviceManageService;
 
     private ServletContext servletContext;
-
-
 
     @Override
     public void setServletContext(ServletContext servletContext) {
@@ -121,6 +118,9 @@ public class AppInfo implements ServletContextAware {
 
     @PostConstruct
     public void init() throws Exception {
+        /** 初始化设备状态 **/
+        deviceManageService.initDeviceStatus();
+
         qiniuAesKey = Constant.getPropertie("qiniu.aeskey");
         qiniuSecretkey = Constant.getPropertie("qiniu.secretkey");
         qiniuDomain = Constant.getPropertie("qiniu.domain");
@@ -148,36 +148,24 @@ public class AppInfo implements ServletContextAware {
             cloudTransQueue = new ConcurrentLinkedQueue<>();
             CloudTransThread cloudTransThread = new CloudTransThread(newOrderParkService);
             cloudTransThread.start();
-            //log.info("启动白名单数据上传服务");
             UploadWhiteListThread uploadWhiteListThread = new UploadWhiteListThread();
             uploadWhiteListThread.start();
-            //log.info("启动白名单数据上传服务成功");
         }
 
-        //log.info("启动设备服务");
         DeviceSIPServer deviceSIPServer = new DeviceSIPServer();
         deviceSIPServer.start();
-        //log.info("设备服务启动成功");
 
-        //log.info("启动LED空闲状态播报服务");
         LedPlayFreeInfoServer ledPlayFreeInfoServer = new LedPlayFreeInfoServer();
         ledPlayFreeInfoServer.start();
-        //log.info("启动LED空闲状态播报服务成功");
 
-        //log.info("启动客户端数据业务发送线程");
         ClientSendThread clientSendThread = new ClientSendThread();
         clientSendThread.start();
 
-        //log.info("启动岗亭服务");
         ParkSocketServer parkSocketServer = new ParkSocketServer();
         parkSocketServer.start();
-        //log.info("岗亭服务启动成功");
 
-        //log.info("启动岗亭客户端心跳定时器");
         ClientHeartThread clientHeartThread = new ClientHeartThread();
         clientHeartThread.start();
-        //log.info("岗亭客户端心跳定时器启动成功");
-
 
         parkLotDomain = Constant.getPropertie("parkLotDomain");
 
@@ -186,7 +174,6 @@ public class AppInfo implements ServletContextAware {
         if (isUseAllinpay.equals("1")){
             AllinQueryThread allinQueryThread = new AllinQueryThread(allinpayService);
             allinQueryThread.start();
-            //log.info("启动定时查询通联订单服务成功");
         }
         allinPayAppId = Constant.getPropertie("appId");
         allinpayClientId = Constant.getPropertie("clientId");
@@ -198,7 +185,6 @@ public class AppInfo implements ServletContextAware {
         guideScreenPos = Integer.valueOf(Constant.getPropertie("guideScreenPos"));
         if ("1".equals(isUseGuideScreen)){
             GuideScreenThread guideScreenThread = new GuideScreenThread();
-            //log.info("启动车位引导屏服务成功");
             guideScreenThread.start();
         }
     }

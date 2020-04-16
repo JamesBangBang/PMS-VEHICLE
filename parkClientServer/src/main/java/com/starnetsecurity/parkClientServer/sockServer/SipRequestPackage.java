@@ -150,8 +150,7 @@ public class SipRequestPackage {
         this.contentType = contentType;
     }
 
-    public void appendHead(String head){
-
+    public boolean appendHead(String head){
         String[] value = head.split(" ");
         requestMethod = value[0];
         if("P".equals(requestMethod)){
@@ -159,11 +158,14 @@ public class SipRequestPackage {
             host = "UAS";
             sipVersion = "V1.0";
         }else{
+            if (value.length < 3){
+                return false;
+            }
             host = value[1];
             sipVersion = value[2];
         }
 
-
+        return true;
     }
 
     public void append(String content){

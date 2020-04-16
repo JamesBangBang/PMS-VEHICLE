@@ -135,7 +135,7 @@ public class PropertiesLoader {
                 is = resource.getInputStream();
                 props.load(is);
             } catch (IOException ex) {
-                LOGGER.info("Could not load properties from path:{}, {} ", location, ex.getMessage());
+                LOGGER.error("Could not load properties from path:{}, {} ", location, ex.getMessage());
             } finally {
                 IOUtils.closeQuietly(is);
             }

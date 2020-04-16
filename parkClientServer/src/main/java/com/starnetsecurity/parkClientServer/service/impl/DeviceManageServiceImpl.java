@@ -40,6 +40,18 @@ public class DeviceManageServiceImpl implements DeviceManageService {
     DeviceBizService deviceBizService;
 
     @Override
+    public void initDeviceStatus() {
+        String hql = "from DeviceInfo where useMark >= 0 and deviceType = 0";
+        List<DeviceInfo> deviceInfoList = (List<DeviceInfo>)baseDao.queryForList(hql);
+        if (deviceInfoList != null && deviceInfoList.size() > 0){
+            for (DeviceInfo deviceInfo :deviceInfoList){
+                deviceInfo.setDevStatus("0");
+                baseDao.update(deviceInfo);
+            }
+        }
+    }
+
+    @Override
     public List<Map<String, Object>> getPageList(Integer size, Integer page) {
         page = page/size + 1;
         String hql = "from DeviceInfo where useMark >= 0 and deviceType = 0";
@@ -148,6 +160,31 @@ public class DeviceManageServiceImpl implements DeviceManageService {
         data.put("ledDevInfo",ledDevInfo);
         data.put("audioDevInfo",audioDevInfo);
         return data;
+    }
+
+    @Override
+    public void deleteDeviceInfo(String id) {
+        DeviceInfo deviceInfo = (DeviceInfo)baseDao.getById(DeviceInfo.class,id);
+        if (CommonUtils.isEmpty(deviceInfo)){
+            throw new BizException("删除设备失败：设备信息不存在");
+        }
+        baseDao.deleteById(DeviceInfo.class,id);
+        String hql = "from DeviceInfo where parentDeviceId = ?";
+        List<DeviceInfo> deviceInfoList = (List<DeviceInfo>)baseDao.queryForList(hql,id);
+        if (deviceInfoList != null && deviceInfoList.size() > 0){
+            for (DeviceInfo subDeviceInfo : deviceInfoList){
+                baseDao.deleteById(DeviceInfo.class,subDeviceInfo.getDeviceId());
+            }
+        }
+
+        hql = "from DeviceInfo where subIpcId = ?";
+        List<DeviceInfo> mainDeviceInfoList = (List<DeviceInfo>)baseDao.queryForList(hql,id);
+        if (mainDeviceInfoList != null && mainDeviceInfoList.size() > 0){
+            for (DeviceInfo mainDeviceInfo : mainDeviceInfoList){
+                mainDeviceInfo.setSubIpcId(null);
+                baseDao.update(mainDeviceInfo);
+            }
+        }
     }
 
     @Override

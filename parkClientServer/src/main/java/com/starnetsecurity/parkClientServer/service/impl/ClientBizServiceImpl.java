@@ -304,7 +304,11 @@ public class ClientBizServiceImpl implements ClientBizService {
                                 List<Map> mapList = query.list();
                                 for (Map map : mapList){
                                     OrderTransaction orderTransaction = (OrderTransaction)baseDao.getById(OrderTransaction.class,(String)map.get("id"));
-                                    orderTransaction.setTransactionMark(orderInoutRecord.getCarNo() + "已场内缴费，但无出场记录");
+                                    if (CommonUtils.isEmpty(orderTransaction.getTransactionMark())) {
+                                        orderTransaction.setTransactionMark("已场内缴费，但无出场记录");
+                                    }else {
+                                        orderTransaction.setTransactionMark(orderTransaction.getTransactionMark() + "（已场内缴费，但无出场记录）");
+                                    }
                                     baseDao.update(orderTransaction);
                                 }
 
@@ -331,6 +335,9 @@ public class ClientBizServiceImpl implements ClientBizService {
 
                     //先开闸，再播报语音
                     if (releaseMode.equals("1")){
+                        if (carparkName.equals("海西1号地库") || carparkName.equals("海西2号地库")){
+                            LOGGER.info(inCarno + "在" +  inRoadName + "开闸入场");
+                        }
                         deviceManageUtils.openRoadGate(deviceInfo.getDeviceIp(),Integer.parseInt(deviceInfo.getDevicePort()),
                                 deviceInfo.getDeviceUsername(),deviceInfo.getDevicePwd());
                     }else if (releaseMode.equals("2")){
@@ -345,6 +352,9 @@ public class ClientBizServiceImpl implements ClientBizService {
                             if (!CommonUtils.isEmpty(memberKind)) {
                                 if (memberKind.getIsStatistic().equals("1")) {
                                     Integer availableCarSpace = carparkInfo.getAvailableCarSpace() > 0 ? carparkInfo.getAvailableCarSpace() - 1 : 0;
+                                    if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
+                                        LOGGER.info(inCarno + "入场真实车位数为：" +  availableCarSpace);
+                                    }
                                     carparkInfo.setAvailableCarSpace(availableCarSpace);
                                     carparkInfo.setCarparkNo(carparkInfo.getCarparkNo()-1);             //隐藏值
                                     baseDao.save(carparkInfo);
@@ -510,6 +520,9 @@ public class ClientBizServiceImpl implements ClientBizService {
                                     if (memberKind.getIsStatistic().equals("1")) {
                                         if (carparkInfo.getCarparkNo() >= 0) {
                                             Integer availableCarSpace = carparkInfo.getAvailableCarSpace() < carparkInfo.getTotalCarSpace() ? carparkInfo.getAvailableCarSpace() + 1 : carparkInfo.getTotalCarSpace();
+                                            if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
+                                                LOGGER.info(outCarno + "出场真实车位数为：" +  availableCarSpace);
+                                            }
                                             carparkInfo.setAvailableCarSpace(availableCarSpace);
                                         }
                                         Integer realAvailableCarSpace = carparkInfo.getCarparkNo() < carparkInfo.getTotalCarSpace() ? carparkInfo.getCarparkNo() + 1 : carparkInfo.getTotalCarSpace();
@@ -548,6 +561,9 @@ public class ClientBizServiceImpl implements ClientBizService {
                     WorkForMultiCarno(outCarno,1,carparkId,orderInoutRecord);
 
                     if (releaseMode.equals("1")){
+                        if (carparkName.equals("海西1号地库") || carparkName.equals("海西2号地库")){
+                            LOGGER.info(outCarno + "在" +  outRoadName + "开闸出场");
+                        }
                         deviceManageUtils.openRoadGate(deviceInfo.getDeviceIp(),Integer.parseInt(deviceInfo.getDevicePort()),
                                 deviceInfo.getDeviceUsername(),deviceInfo.getDevicePwd());
                     }else if (releaseMode.equals("2")){
@@ -733,7 +749,11 @@ public class ClientBizServiceImpl implements ClientBizService {
                             List<Map> mapList = query.list();
                             for (Map map : mapList){
                                 OrderTransaction orderTransaction = (OrderTransaction)baseDao.getById(OrderTransaction.class,(String)map.get("id"));
-                                orderTransaction.setTransactionMark(orderInoutRecord.getCarNo() + "已场内缴费，但无出场记录");
+                                if (CommonUtils.isEmpty(orderTransaction.getTransactionMark())) {
+                                    orderTransaction.setTransactionMark("已场内缴费，但无出场记录");
+                                }else {
+                                    orderTransaction.setTransactionMark(orderTransaction.getTransactionMark() + "（已场内缴费，但无出场记录）");
+                                }
                                 baseDao.update(orderTransaction);
                             }
 
@@ -762,6 +782,9 @@ public class ClientBizServiceImpl implements ClientBizService {
                         if (!CommonUtils.isEmpty(memberKind)) {
                             if (memberKind.getIsStatistic().equals("1")) {
                                 Integer availableCarSpace = carparkInfo.getAvailableCarSpace() > 0 ? carparkInfo.getAvailableCarSpace() - 1 : 0;
+                                if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
+                                    LOGGER.info(inOutCarno + "入场真实车位数为：" +  availableCarSpace);
+                                }
                                 carparkInfo.setAvailableCarSpace(availableCarSpace);
                                 carparkInfo.setCarparkNo(carparkInfo.getCarparkNo()-1);             //隐藏值
                                 baseDao.save(carparkInfo);
@@ -850,6 +873,9 @@ public class ClientBizServiceImpl implements ClientBizService {
                                     if (memberKind.getIsStatistic().equals("1")) {
                                         if (carparkInfo.getCarparkNo() >= 0) {
                                             Integer availableCarSpace = carparkInfo.getAvailableCarSpace() < carparkInfo.getTotalCarSpace() ? carparkInfo.getAvailableCarSpace() + 1 : carparkInfo.getTotalCarSpace();
+                                            if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
+                                                LOGGER.info(inOutCarno + "出场真实车位数为：" +  availableCarSpace);
+                                            }
                                             carparkInfo.setAvailableCarSpace(availableCarSpace);
                                         }
                                         Integer realAvailableCarSpace = carparkInfo.getCarparkNo() < carparkInfo.getTotalCarSpace() ? carparkInfo.getCarparkNo() + 1 : carparkInfo.getTotalCarSpace();

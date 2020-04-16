@@ -11,6 +11,14 @@ import java.util.Map;
  * Created by 宏炜 on 2017-12-29.
  */
 public interface DeviceManageService {
+    /**
+     * @Author chenbinbin
+     * @Description 初始化设备状态
+     * @Date 10:16 2020/3/2
+     * @Param []
+     * @return void
+     **/
+    void initDeviceStatus();
 
     List<Map<String,Object>> getPageList(Integer size, Integer page);
 
@@ -19,6 +27,15 @@ public interface DeviceManageService {
     List getIPCSelect();
 
     Map getDeviceInfo(String id);
+
+    /**
+     * @Author chenbinbin
+     * @Description 删除设备信息
+     * @Date 9:52 2020/3/2
+     * @Param [id]
+     * @return void
+     **/
+    void deleteDeviceInfo(String id);
 
     void updateDeviceBasicData(JSONObject params);
 

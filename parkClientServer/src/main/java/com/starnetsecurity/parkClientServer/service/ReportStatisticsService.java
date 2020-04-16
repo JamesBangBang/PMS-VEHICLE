@@ -455,7 +455,13 @@ public interface ReportStatisticsService {
 
     List prePaymentList(String orderOrechargeCarno, String chargeMemberKindName, String orderPrechargeCarparkName, String startTime, String endTime,String excelStart, String excelEnd);
 
-
+    /**
+     * @Author chenbinbin
+     * @Description 获取交易流水表
+     * @Date 17:30 2020/2/28
+     * @Param [start, length, startTime, endTime, payType, payStatus, excelStart, excelEnd, markInfo, carparkName, carno]
+     * @return java.util.List
+     **/
     List tranSaction(Integer start, Integer length, String startTime, String endTime, String payType, String payStatus, String excelStart,
                      String excelEnd,String markInfo,String carparkName,String carno);
 

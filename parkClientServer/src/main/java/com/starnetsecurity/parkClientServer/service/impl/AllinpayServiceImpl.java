@@ -158,7 +158,6 @@ public class AllinpayServiceImpl implements AllinpayService {
             String signStr = createSign(packParams,AppInfo.allinpayKey,"utf-8");
             res = "https://syb.allinpay.com/sappweb/usertrans/cuspay?appid=" + AppInfo.allinPayAppId + "&c=" + AppInfo.allinpayClientId
                     + "&oid=" + orderTransaction.getTransactionId() + "&amt=" + amt   + "&sign=" + signStr;
-            LOGGER.info("通联支付创建支付链接" + res);
         } catch (Exception e) {
             LOGGER.error("生成订单失败");
         }
@@ -167,7 +166,6 @@ public class AllinpayServiceImpl implements AllinpayService {
 
     @Override
     public QueryRsp returnParkingInfo(TreeMap treeMap) {
-        LOGGER.info("通联数据同步开始");
         QueryRsp res = new QueryRsp();
         try {
             String bizseq = FuncUtil.getMapValue(treeMap, "bizseq");
@@ -214,13 +212,11 @@ public class AllinpayServiceImpl implements AllinpayService {
         } catch (Exception e) {
             LOGGER.error("通联数据同步失败");
         }
-        LOGGER.info("通联数据同步成功");
         return res;
     }
 
     @Override
     public boolean chargeSucessNotify(TreeMap treeMap) {
-        LOGGER.info("通联数据异步通知开始");
         boolean res = false;
         try {
             String bizseq = FuncUtil.getMapValue(treeMap, "bizseq");
@@ -274,7 +270,6 @@ public class AllinpayServiceImpl implements AllinpayService {
         } catch (Exception e) {
             LOGGER.error("异步通知失败");
         }
-        LOGGER.info("通联数据异步通知成功");
         return res;
     }
 
@@ -300,7 +295,6 @@ public class AllinpayServiceImpl implements AllinpayService {
 
     @Override
     public boolean queryOrderStatus(String id) {
-        LOGGER.info("通联数据查询开始");
         boolean res = false;
         try {
             Map<String, String> packParams = new HashedMap();
@@ -322,7 +316,6 @@ public class AllinpayServiceImpl implements AllinpayService {
             JSONObject resJson = JSON.parseObject(responseStr);
             if ("SUCCESS".equals(resJson.get("retcode") + "")){
                 if ("0000".equals(resJson.get("trxstatus") + "")){
-                    LOGGER.info("通联数据查询交易状态成功");
                     AllinQueryThread.setSuspend(true);
                     String orderid = resJson.get("orderid") + "";
                     String amount = resJson.get("amount") + "";

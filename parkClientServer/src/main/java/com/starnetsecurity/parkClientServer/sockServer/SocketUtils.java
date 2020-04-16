@@ -33,10 +33,9 @@ public class SocketUtils {
     public void initServer(int port){
         try{
             if(!CommonUtils.isEmpty(this.serverSocket)){
-                LOGGER.info("serverSocket 初始化错误,重复初始化,请先行销毁");
+                LOGGER.error("serverSocket 初始化错误,重复初始化,请先行销毁");
             }
             this.serverSocket = new ServerSocket(port);
-            //LOGGER.info("serverSocket 初始化完成,初始化端口:{}",port);
         }catch (IOException ex){
             LOGGER.error("serverSocket 初始化失败:{}",iOExceptionMsg,ex);
         }catch (BizException ex){
@@ -47,7 +46,6 @@ public class SocketUtils {
     public Socket acceptClient(){
         try {
             Socket socket = this.serverSocket.accept();
-            //LOGGER.info("建立来自[{}]:[{}]远程主机的连接",socket.getInetAddress().getHostAddress(),socket.getPort());
             return socket;
         } catch (IOException ex) {
             LOGGER.error("serverSocket 监听失败:{}",iOExceptionMsg,ex);
@@ -89,7 +87,6 @@ public class SocketUtils {
             msg = DecimalToHexString(len) + msg;
             printWriter.print(msg);
             printWriter.flush();
-            //LOGGER.info("向[{}]:[{}]发送[{}]个字节数据成功:{}",socket.getInetAddress(),socket.getPort(),len + 4,msg);
             return len + 4;
         }catch (IOException ex){
             LOGGER.error("向[{}]:[{}]发送失败:{}",socket.getInetAddress(),socket.getPort(),iOExceptionMsg,ex);
@@ -108,7 +105,6 @@ public class SocketUtils {
             PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(outputStream,"UTF-8"),true);
             printWriter.print(msg);
             printWriter.flush();
-            //LOGGER.info("向[{}]:[{}]发送[{}]个字节数据成功:{}",socket.getInetAddress(),socket.getPort(),msg.length(),msg);
             return msg.length();
         }catch (IOException ex){
             throw new BizException("数据发送异常:" + iOExceptionMsg);
@@ -169,7 +165,6 @@ public class SocketUtils {
                 contentSize += ret;
             }
             String msg = new String(content,"UTF-8");
-            //LOGGER.info("收到来自[{}]:[{}]的数据:{}",socket.getInetAddress(),socket.getPort(),msg);
             return msg;
         } catch (IOException ex) {
             LOGGER.error("接收数据异常:{}",iOExceptionMsg,ex);
@@ -196,7 +191,10 @@ public class SocketUtils {
                 }
                 if(i == 0){
                     sipRequestPackage = new SipRequestPackage();
-                    sipRequestPackage.appendHead(line);
+                    if (!sipRequestPackage.appendHead(line)){
+                        sipRequestPackage = null;
+                        break;
+                    }
                 }else{
                     sipRequestPackage.append(line);
                 }
@@ -217,7 +215,6 @@ public class SocketUtils {
                 sipRequestPackage.appendBody(bodyStr);
             }
 
-            //LOGGER.info("收到来自[{}]:[{}]的数据:{}",socket.getInetAddress(),socket.getPort(),msg);
             return sipRequestPackage;
         } catch (IOException ex) {
             LOGGER.error("接收数据异常:{}",iOExceptionMsg,ex);
@@ -303,9 +300,8 @@ public class SocketUtils {
                 socket.close();
             }
 
-            //LOGGER.info("关闭来自[{}]:[{}]远程主机的连接",socket.getInetAddress(),socket.getPort());
         } catch (IOException e) {
-            LOGGER.info("关闭来自[{}]:[{}]远程主机的连接异常{}",socket.getInetAddress(),socket.getPort(),iOExceptionMsg,e);
+            LOGGER.error("关闭来自[{}]:[{}]远程主机的连接异常{}",socket.getInetAddress(),socket.getPort(),iOExceptionMsg,e);
         }
     }
 

@@ -96,7 +96,6 @@ public class CommonUtils {
         } else {
             buffer.append("?").append(paramStr);
         }
-        logger.info("uri build :{}", buffer.toString());
         return buffer.toString();
     }
 
@@ -113,7 +112,6 @@ public class CommonUtils {
         buffer.append(request.isSecure() ? "https://" : "http://");
         buffer.append(request.getServerName());
         buffer.append(uri);
-        logger.info("serviceUrl before encode:{}", buffer.toString());
         return response.encodeURL(buffer.toString());
     }
 
@@ -136,9 +134,6 @@ public class CommonUtils {
             buffer.append("?").append(queryStr);
         }
         String fullUrl = buffer.toString();
-        if (logger.isDebugEnabled()) {
-            logger.info("full url build before encode : {}", fullUrl);
-        }
         return fullUrl;
     }
 
@@ -320,29 +315,6 @@ public class CommonUtils {
             return 0;
         }
     }
-
-    /**
-     * 发送短信验证码
-     * @param mobile
-     */
-//    public static void sendSms(String mobile,String outlet,String msgContent,String BASSUSERNAME,String BASSPASSWORD){
-//        CloudConfig config = new CloudConfig();
-//        config.setUserName(BASSUSERNAME); // 必填， bass上的账号
-//        config.setPassword(BASSPASSWORD); // 必填， bass上的密码
-//        config.setUrl("http://baas.ruijieyun.com/"); // 写死
-//        JSONObject param = new JSONObject();
-//        param.put("phoneNumber", mobile); // 发送号码，
-//        param.put("msgContent", msgContent); // 短信内容
-//        param.put("outlet", outlet); //必填，例如星网视易
-//        param.put("outletType", "");      //
-//        param.put("outletAddress", "");
-//        try {
-//            SmsService.sendSms(config, param);
-//        } catch (CloudException e) {
-//            logger.info(e.getErrorCode() + "================:" + e.getErrorDiscription());
-//            e.printStackTrace();
-//        }
-//    }
 
     /**
      * 获取客户端访问IP

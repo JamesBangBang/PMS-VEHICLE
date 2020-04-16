@@ -24,7 +24,6 @@ public class QiniuUtils {
             Configuration c = new Configuration(z);
             UploadManager uploadManager = new UploadManager(c);
             Response res = uploadManager.put(filePath, fileName, auth.uploadToken(bucketName));
-            //log.info("七牛云上传图片返回信息：{}",res.toString());
             return true;
         } catch (QiniuException e) {
             Response r = e.response;
@@ -40,7 +39,6 @@ public class QiniuUtils {
             Configuration c = new Configuration(z);
             UploadManager uploadManager = new UploadManager(c);
             Response res = uploadManager.put(data, fileName, auth.uploadToken(bucketName));
-            //log.info("七牛云上传图片返回信息：{}",res.toString());
             return true;
         } catch (QiniuException e) {
             Response r = e.response;

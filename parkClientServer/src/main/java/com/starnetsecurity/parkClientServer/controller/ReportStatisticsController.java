@@ -2368,6 +2368,12 @@ public class ReportStatisticsController extends BaseController{
                           HttpSession session){
         Map res = new HashedMap();
         try {
+            if (CommonUtils.isEmpty(startTime)){
+                startTime = CommonUtils.formatTimeStamp("yyyy-MM-dd HH:mm:ss",CommonUtils.getTodayStartTimeStamp());
+            }
+            if (CommonUtils.isEmpty(endTime)){
+                endTime = CommonUtils.formatTimeStamp("yyyy-MM-dd HH:mm:ss",CommonUtils.getTodayEndTimeStamp());
+            }
             session.setAttribute("startTime", startTime);
             session.setAttribute("endTime", endTime);
             session.setAttribute("payType", payType);
@@ -2409,6 +2415,12 @@ public class ReportStatisticsController extends BaseController{
 
             String startTime= (String)session.getAttribute("startTime");
             String endTime= (String)session.getAttribute("endTime");
+            if (CommonUtils.isEmpty(startTime)){
+                startTime = CommonUtils.formatTimeStamp("yyyy-MM-dd HH:mm:ss",CommonUtils.getTodayStartTimeStamp());
+            }
+            if (CommonUtils.isEmpty(endTime)){
+                endTime = CommonUtils.formatTimeStamp("yyyy-MM-dd HH:mm:ss",CommonUtils.getTodayEndTimeStamp());
+            }
             String payType= (String)session.getAttribute("payType");
             String payStatus= (String)session.getAttribute("payStatus");
             String excelStart= (String)session.getAttribute("excelStart");
@@ -2494,6 +2506,12 @@ public class ReportStatisticsController extends BaseController{
                                  HttpSession session){
         Map res = new HashedMap();
         try {
+            if (CommonUtils.isEmpty(startTime)){
+                startTime = CommonUtils.formatTimeStamp("yyyy-MM-dd HH:mm:ss",CommonUtils.getTodayStartTimeStamp());
+            }
+            if (CommonUtils.isEmpty(endTime)){
+                endTime = CommonUtils.formatTimeStamp("yyyy-MM-dd HH:mm:ss",CommonUtils.getTodayEndTimeStamp());
+            }
             session.setAttribute("startTime", startTime);
             session.setAttribute("endTime", endTime);
             session.setAttribute("payType", payType);

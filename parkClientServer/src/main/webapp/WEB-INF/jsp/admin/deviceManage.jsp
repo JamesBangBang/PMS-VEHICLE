@@ -89,6 +89,25 @@
         </div>
     </div>
 
+    <div class="modal inmodal" id="deleteModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content animated fadein">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                    <h4 class="modal-title">确认删除</h4>
+                    <small class="font-bold"></small>
+                </div>
+                <div class="modal-body">
+                    <p><strong>如果删除，该设备及下属所有设备都会被删除</strong></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-white" data-dismiss="modal">关闭</button>
+                    <button type="button"  id="deleteBtn" class="btn btn-primary">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal inmodal fade" id="editModal" tabindex="-1" role="dialog" aria-hidden="true">
 
         <div class="modal-dialog modal-lg"><!--框框-->

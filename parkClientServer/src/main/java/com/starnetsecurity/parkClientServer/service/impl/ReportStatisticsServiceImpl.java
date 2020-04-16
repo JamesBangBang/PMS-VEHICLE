@@ -170,18 +170,18 @@ public class ReportStatisticsServiceImpl implements ReportStatisticsService {
             hql += " And a.pay_status = '" + payStatus + "' ";
         }*/
         if (!CommonUtils.isEmpty(startTime) && !CommonUtils.isEmpty(endTime)) {
-            hql += " And b.out_time >= '" + startTime + "' And b.out_time <= '" + endTime + "' ";
+            hql += " And a.pay_time >= '" + startTime + "' And a.pay_time <= '" + endTime + "' ";
         }
 
         if (!CommonUtils.isEmpty(markInfo)){
             if ("0".equals(markInfo)) {
-                hql += " AND (a.transaction_mark = '' or a.transaction_mark IS NULL) ";
+                hql += " AND (b.out_time is NULL OR b.out_time = '')";
             }else {
-                hql += " AND a.transaction_mark <> '' ";
+                hql += " AND (b.out_time is NOT NULL OR b.out_time <> '')";
             }
         }
 
-        hql += " ORDER BY b.out_time DESC";
+        hql += " ORDER BY a.pay_time DESC";
 
         SQLQuery sqlQuery = baseDao.getHibernateTemplate().getSessionFactory().getCurrentSession().createSQLQuery(hql);
         if (!CommonUtils.isEmpty(start)){
@@ -221,13 +221,13 @@ public class ReportStatisticsServiceImpl implements ReportStatisticsService {
             hql += " And a.pay_type ='" + payType + "' ";
         }
         if (!CommonUtils.isEmpty(startTime) && !CommonUtils.isEmpty(endTime)) {
-            hql += " And b.out_time >= '" + startTime + "' And b.out_time <= '" + endTime + "' ";
+            hql += " And a.pay_time >= '" + startTime + "' And a.pay_time <= '" + endTime + "' ";
         }
         if (!CommonUtils.isEmpty(markInfo)){
             if ("0".equals(markInfo)) {
-                hql += " AND (a.transaction_mark = '' or a.transaction_mark IS NULL) ";
+                hql += " AND (b.out_time is NULL OR b.out_time = '')";
             }else {
-                hql += " AND a.transaction_mark <> '' ";
+                hql += " AND (b.out_time is NOT NULL OR b.out_time <> '')";
             }
         }
 
@@ -255,17 +255,17 @@ public class ReportStatisticsServiceImpl implements ReportStatisticsService {
             hql += " And a.pay_type ='" + payType + "' ";
         }
         if (!CommonUtils.isEmpty(startTime) && !CommonUtils.isEmpty(endTime)) {
-            hql += " And b.out_time >= '" + startTime + "' And b.out_time <= '" + endTime + "' ";
+            hql += " And a.pay_time >= '" + startTime + "' And a.pay_time <= '" + endTime + "' ";
         }
         if (!CommonUtils.isEmpty(markInfo)){
             if ("0".equals(markInfo)) {
-                hql += " AND (a.transaction_mark = '' or a.transaction_mark IS NULL) ";
+                hql += " AND (b.out_time is NULL OR b.out_time = '')";
             }else {
-                hql += " AND a.transaction_mark <> '' ";
+                hql += " AND (b.out_time is NOT NULL OR b.out_time <> '')";
             }
         }
 
-        hql += " ORDER BY b.out_time DESC";
+        hql += " ORDER BY a.pay_time DESC";
 
         SQLQuery query = baseDao.getHibernateTemplate().getSessionFactory().getCurrentSession().createSQLQuery(hql);
 
@@ -298,14 +298,14 @@ public class ReportStatisticsServiceImpl implements ReportStatisticsService {
             hql += " And a.pay_type ='" + payType + "' ";
         }
         if (!CommonUtils.isEmpty(startTime) && !CommonUtils.isEmpty(endTime)) {
-            hql += " And b.out_time >= '" + startTime + "' And b.out_time <= '" + endTime + "' ";
+            hql += " And a.pay_time >= '" + startTime + "' And a.pay_time <= '" + endTime + "' ";
         }
 
         if (!CommonUtils.isEmpty(markInfo)){
             if ("0".equals(markInfo)) {
-                hql += " AND (a.transaction_mark = '' or a.transaction_mark IS NULL) ";
+                hql += " AND (b.out_time is NULL OR b.out_time = '')";
             }else {
-                hql += " AND a.transaction_mark <> '' ";
+                hql += " AND (b.out_time is NOT NULL OR b.out_time <> '')";
             }
         }
 
@@ -319,10 +319,10 @@ public class ReportStatisticsServiceImpl implements ReportStatisticsService {
         for (Map map : mapList){
             totalFee = totalFee + Double.valueOf(map.get("totalFee") + "");
             payTypeInfo = map.get("payType") + "";
-            if (("BOSS_PAY".equals(payTypeInfo)) || ("G".equals(payTypeInfo))){
-                onlineFee = onlineFee + Double.valueOf(map.get("totalFee") + "");
-            }else {
+            if (("CASH_PAY".equals(payTypeInfo)) || ("A".equals(payTypeInfo)) || ("A".equals(payTypeInfo))){
                 cashFee = cashFee + Double.valueOf(map.get("totalFee") + "");
+            }else {
+                onlineFee = onlineFee + Double.valueOf(map.get("totalFee") + "");
             }
         }
         res.put("totalFee",totalFee);

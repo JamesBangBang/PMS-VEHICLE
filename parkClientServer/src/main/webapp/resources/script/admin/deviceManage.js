@@ -3,6 +3,8 @@
  */
 var deviceManage;
 var ledPlayType;
+var deleteData;
+var mainTable;
 $(function () {
 
     deviceManage = {
@@ -45,6 +47,7 @@ $(function () {
             this.bindSaveAudioBtn();
             this.bindTimeFormatBtn();
             this.ondeviceLedTypeChange();
+            this.delFunc();
         },
         initOcx:function(){
             this.ocxObject = new ocxFuncObject();
@@ -85,7 +88,8 @@ $(function () {
                     },
                     {
                         "render": function(data, type, row, meta) {
-                            return '<button class="btn btn-info btn-sm" onclick="deviceManage.editFunc('+meta.row+')">配置</button>';
+                            return '<button class="btn btn-info btn-sm" onclick="deviceManage.editFunc('+meta.row+')">配置</button> '
+                                + '<button class="btn  btn-sm btn-danger" onclick="deviceManage.deleteFunction('+meta.row+')">删除</button>';
                         },
                         "targets": 8
                     },
@@ -247,26 +251,35 @@ $(function () {
 
 
         },
+
         bindOnEditModalHide:function () {
             var that = this;
             $('#editModal').on('hidden.bs.modal', function (e) {
                 that.ocxObject.stopView();
             });
         },
-        delFunc:function (rowIndex) {
-            var delData = this.autoTable.row(rowIndex).data();
-            var params = {
-                "id":delData["deviceId"]
-            };
-            $.post(starnetContextPath + '/device/manage/delete',params,function(res){
-                if(res.result == 0){
-                    successfulPrompt("操作成功","");
-                    deviceManage.autoTable.ajax.reload(null,true);
 
-                }else{
-                    errorPrompt("操作失败",res.msg);
-                }
-            },'json');
+        deleteFunction: function (rowIndex) {
+            var data = this.autoTable.row(rowIndex).data();
+            deleteData = data;
+            $("#deleteModal").modal("show");
+        },
+
+        delFunc:function () {
+            $('#deleteBtn').unbind("click").bind("click", function () {
+                var params = {
+                    "id": deleteData["deviceId"]
+                };
+                $.post(starnetContextPath + '/device/manage/delete', params, function (res) {
+                    if (res.result == 0) {
+                        $("#deleteModal").modal("hide");
+                        successfulPrompt("设备删除成功", "");
+                        deviceManage.autoTable.ajax.reload(null, true);
+                    } else {
+                        errorPrompt("操作失败", res.msg);
+                    }
+                }, 'json');
+            });
         },
         bindSubmitClick: function () {
             $('#submitBtn').unbind("click").bind("click", function () {

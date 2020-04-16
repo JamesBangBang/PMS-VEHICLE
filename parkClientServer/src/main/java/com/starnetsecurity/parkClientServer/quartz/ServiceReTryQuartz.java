@@ -48,7 +48,7 @@ public class ServiceReTryQuartz {
                                 try {
                                     String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/orderInfo/uploadInParkOrder", orderElement);
                                     if (CommonUtils.isEmpty(responseStr)) {
-                                        LOGGER.info("入场订单数据重传失败" + responseStr);
+                                        LOGGER.error("入场订单数据重传失败" + responseStr);
                                     }
                                     JSONObject res = JSON.parseObject(responseStr);
                                     if ("200".equals(res.getString("code"))) {
@@ -64,13 +64,13 @@ public class ServiceReTryQuartz {
                                 try {
                                     String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/orderInfo/uploadOutParkOrder", orderElement);
                                     if (CommonUtils.isEmpty(responseStr)) {
-                                        LOGGER.info("出场订单数据重传失败" + responseStr);
+                                        LOGGER.error("出场订单数据重传失败" + responseStr);
                                     }
                                     JSONObject res = JSON.parseObject(responseStr);
                                     if ("200".equals(res.getString("code"))) {
                                         newOrderParkService.deleteSuccessInfo(wechatPayFailUrl.getId());
                                     } else {
-                                        LOGGER.info("出场订单数据重传失败" + responseStr);
+                                        LOGGER.error("出场订单数据重传失败" + responseStr);
                                     }
                                 } catch (IOException e) {
                                     LOGGER.error("出场订单数据重传失败" + e.getMessage());
@@ -79,16 +79,16 @@ public class ServiceReTryQuartz {
                                 try {
                                     String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/orderInfo/uploadInChargeTimeOrder", orderElement);
                                     if (CommonUtils.isEmpty(responseStr)) {
-                                        LOGGER.info("订单数据重传失败");
+                                        LOGGER.error("订单数据重传失败");
                                     }
                                     JSONObject res = JSON.parseObject(responseStr);
                                     if ("200".equals(res.getString("code"))) {
                                         newOrderParkService.deleteSuccessInfo(wechatPayFailUrl.getId());
                                     } else {
-                                        LOGGER.info("订单数据重传失败");
+                                        LOGGER.error("订单数据重传失败");
                                     }
                                 } catch (IOException e) {
-                                    LOGGER.info("订单数据重传失败");
+                                    LOGGER.error("订单数据重传失败");
                                 }
                             }
                         }

@@ -19,9 +19,7 @@ public class DeviceTimeSetQuartz {
     DeviceManageService deviceManageService;
 
     public void run() {
-
         try {
-            LOGGER.info("设备校时定时器启动");
             try{
                 deviceManageService.formatDeviceTime();
 

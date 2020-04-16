@@ -92,7 +92,6 @@ public class CloudTransThread extends Thread{
                         break;
                     }
                     case uparkBillPush:{
-                        LOGGER.info("推送账单至云平台发起扣款");
                         JSONObject billElement = cloudTransPackage.getUploadData();
                         try {
                             String responseStr = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/orderInfo/uploadUparkBillInfo",billElement);

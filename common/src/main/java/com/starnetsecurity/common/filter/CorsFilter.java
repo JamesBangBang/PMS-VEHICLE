@@ -29,7 +29,6 @@ public class CorsFilter implements Filter {
     }
 
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
-        //LOGGER.info("Cors filter working,resolve ajax Cross-domain problem");
         HttpServletResponse response = (HttpServletResponse) res;
         // 允许所有域进行访问
         response.setHeader("Access-Control-Allow-Origin", "*");

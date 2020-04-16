@@ -294,7 +294,6 @@ public class NewOrderParkServiceImpl implements NewOrderParkService {
 
     @Override
     public void handleFailInfo(WechatPayFailUrl wechatPayFailUrl) {
-        LOGGER.info("处理重传失败的入场数据");
         String[] orderArr = wechatPayFailUrl.getUrl().split(",");
         Integer arrLen = Integer.valueOf(orderArr.length);
         InoutRecordInfo inoutRecordInfo = (InoutRecordInfo) baseDao.getById(InoutRecordInfo.class,orderArr[0]);
@@ -560,7 +559,6 @@ public class NewOrderParkServiceImpl implements NewOrderParkService {
     @Override
     public void inParkInfoRePush(JSONObject jsonObject) {
         try {
-            LOGGER.info("接收到云平台信息，查询入场信息");
             /*String carno = jsonObject.getString("carno");
             String hql = "from OrderInoutRecord where carNo = ? and outRecordId is null order by inTime desc";
             List<OrderInoutRecord> list = (List<OrderInoutRecord>)baseDao.queryForList(hql,carno);
@@ -569,7 +567,6 @@ public class NewOrderParkServiceImpl implements NewOrderParkService {
                 if (("金山园区".equals(orderInoutRecord.getCarparkName())) || ("海西园区".equals(orderInoutRecord.getCarparkName()))){
                     return;
                 }
-                LOGGER.info("接收到云平台信息，入场信息开始重传");
                 InoutRecordInfo inoutRecordInfo = (InoutRecordInfo)baseDao.getById(InoutRecordInfo.class,orderInoutRecord.getInRecordId());
                 addInParkOrderToCloud(inoutRecordInfo,"",orderInoutRecord);
             }*/

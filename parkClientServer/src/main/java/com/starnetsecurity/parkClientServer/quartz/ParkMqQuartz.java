@@ -32,7 +32,6 @@ public class ParkMqQuartz {
     public void run() {
 
         try {
-            LOGGER.info("车场消息队列定时器启动");
             try{
                 List<CarparkRegister> list = parkService.getRegisteredParks();
                 for(CarparkRegister carparkRegister : list){

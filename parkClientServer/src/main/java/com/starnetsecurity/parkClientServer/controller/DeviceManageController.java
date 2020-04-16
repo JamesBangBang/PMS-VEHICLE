@@ -74,6 +74,19 @@ public class DeviceManageController extends BaseController {
     }
 
     @ResponseBody
+    @RequestMapping("/delete")
+    public Map deleteDeviceInfo(String id){
+        Map<String,Object> res = new HashedMap();
+        try{
+            deviceManageService.deleteDeviceInfo(id);
+            this.success(res);
+        }catch (BizException ex){
+            this.failed(res,ex);
+        }
+        return res;
+    }
+
+    @ResponseBody
     @RequestMapping("/update/basic")
     public Map updateDeviceBasic(@RequestBody JSONObject params){
         Map<String,Object> res = new HashedMap();

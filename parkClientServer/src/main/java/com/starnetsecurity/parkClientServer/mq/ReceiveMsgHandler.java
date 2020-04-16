@@ -58,7 +58,6 @@ public class ReceiveMsgHandler {
                     parkService.addRechargeRecord(memberId,carno,parkId,fee,payTime,kindId,effectiveEndTime,surplusNum,surplusAmount,kindName);
                     break;
             }
-            //log.info("收到队列：{} 的消息：{}",msg);
         }
     }
 }

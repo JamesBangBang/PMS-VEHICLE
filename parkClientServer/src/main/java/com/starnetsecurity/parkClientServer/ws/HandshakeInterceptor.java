@@ -22,7 +22,6 @@ public class HandshakeInterceptor extends HttpSessionHandshakeInterceptor {
                                    ServerHttpResponse response, WebSocketHandler wsHandler,
                                    Map<String, Object> attributes) throws Exception {
 
-        ////log.info("HandshakeInterceptor: beforeHandshake", attributes);
         return super.beforeHandshake(request, response, wsHandler, attributes);
     }
 
@@ -33,8 +32,6 @@ public class HandshakeInterceptor extends HttpSessionHandshakeInterceptor {
     public void afterHandshake(ServerHttpRequest request,
                                ServerHttpResponse response, WebSocketHandler wsHandler,
                                Exception ex) {
-
-        ////log.info("HandshakeInterceptor: afterHandshake");
         super.afterHandshake(request, response, wsHandler, ex);
     }
 

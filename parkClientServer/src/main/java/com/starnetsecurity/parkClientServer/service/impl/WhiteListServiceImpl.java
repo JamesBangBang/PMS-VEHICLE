@@ -289,6 +289,10 @@ public class WhiteListServiceImpl implements WhiteListService{
 
                 if (memberWallet.getPackKindId().equals(0) || memberKind.getPackageKind().equals(-3)) {
                     if (carNos.length == 1) {
+                        //下发返回值
+                        Integer resCode = 0;
+                        //下发数量
+                        Integer issuedCount = 0;
                         JSONObject whiteParams = new JSONObject();
                         whiteParams.put("GroupId", 0);
                         whiteParams.put("owner", memberWallet.getDriverName());
@@ -304,10 +308,16 @@ public class WhiteListServiceImpl implements WhiteListService{
                             hql = "from DeviceInfo where ownCarRoad = ? and deviceType = '0' and useMark >= 0";
                             List<DeviceInfo> deviceInfos = (List<DeviceInfo>) hibernateBaseDao.queryForList(hql, carRoadInfo.getCarRoadId());
                             for (DeviceInfo deviceInfo : deviceInfos) {
-                                deviceManageUtils.addWhiteMember(deviceInfo.getDeviceIp(), Integer.parseInt(deviceInfo.getDevicePort()), deviceInfo.getDeviceUsername(), deviceInfo.getDevicePwd(), whiteParams);
+                                resCode = resCode + deviceManageUtils.addWhiteMember(deviceInfo.getDeviceIp(), Integer.parseInt(deviceInfo.getDevicePort()), deviceInfo.getDeviceUsername(), deviceInfo.getDevicePwd(), whiteParams);
+                                issuedCount  = issuedCount + 1;
                             }
                         }
-                        memberWallet.setSynchronizeIpcList("WhiteList");
+                        if ((issuedCount > 0) && (resCode <= 200 * issuedCount)){
+                            memberWallet.setSynchronizeIpcList("WhiteList");
+                        }else {
+                            memberWallet.setSynchronizeIpcList(null);
+                        }
+
                     }
                 }
                 hibernateBaseDao.save(memberWallet);
@@ -337,8 +347,13 @@ public class WhiteListServiceImpl implements WhiteListService{
                     for(InOutCarRoadInfo carRoadInfo : carRoadInfos){
                         hql = "from DeviceInfo where ownCarRoad = ? and deviceType = '0' and useMark >= 0";
                         List<DeviceInfo> deviceInfos = (List<DeviceInfo>)hibernateBaseDao.queryForList(hql,carRoadInfo.getCarRoadId());
-                        for(DeviceInfo deviceInfo : deviceInfos){
-                            deviceManageUtils.delWhiteMember(deviceInfo.getDeviceIp(),Integer.parseInt(deviceInfo.getDevicePort()),deviceInfo.getDeviceUsername(),deviceInfo.getDevicePwd(),whiteParams);
+                        for(DeviceInfo deviceInfo : deviceInfos) {
+                            for (int i = 0; i < 3; i++) {
+                                Integer resCode = deviceManageUtils.delWhiteMember(deviceInfo.getDeviceIp(), Integer.parseInt(deviceInfo.getDevicePort()), deviceInfo.getDeviceUsername(), deviceInfo.getDevicePwd(), whiteParams);
+                                if (resCode.equals(200)){
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
@@ -446,6 +461,10 @@ public class WhiteListServiceImpl implements WhiteListService{
             memberWallet.setSynchronizeIpcList(null);
             if(memberWallet.getPackKindId().equals(0) || memberKind.getPackageKind().equals(-3)){
                 if(carNos.length == 1){
+                    //下发返回值
+                    Integer resCode = 0;
+                    //下发数量
+                    Integer issuedCount = 0;
                     JSONObject whiteParams = new JSONObject();
                     whiteParams.put("oldplate",memberWallet.getMenberNo());
                     whiteParams.put("GroupId",0);
@@ -462,10 +481,15 @@ public class WhiteListServiceImpl implements WhiteListService{
                         hql = "from DeviceInfo where ownCarRoad = ? and deviceType = '0' and useMark >= 0";
                         List<DeviceInfo> deviceInfos = (List<DeviceInfo>)hibernateBaseDao.queryForList(hql,carRoadInfo.getCarRoadId());
                         for(DeviceInfo deviceInfo : deviceInfos){
-                            deviceManageUtils.updateWhiteMember(deviceInfo.getDeviceIp(),Integer.parseInt(deviceInfo.getDevicePort()),deviceInfo.getDeviceUsername(),deviceInfo.getDevicePwd(),whiteParams);
+                            resCode = resCode + deviceManageUtils.updateWhiteMember(deviceInfo.getDeviceIp(),Integer.parseInt(deviceInfo.getDevicePort()),deviceInfo.getDeviceUsername(),deviceInfo.getDevicePwd(),whiteParams);
+                            issuedCount  = issuedCount + 1;
                         }
                     }
-                    memberWallet.setSynchronizeIpcList("WhiteList");
+                    if ((issuedCount > 0) && (resCode <= 200 * issuedCount)){
+                        memberWallet.setSynchronizeIpcList("WhiteList");
+                    }else {
+                        memberWallet.setSynchronizeIpcList(null);
+                    }
                 }
             }
 
@@ -599,7 +623,6 @@ public class WhiteListServiceImpl implements WhiteListService{
 
     @Override
     public void saveOwnerList(List<Map<String, Object>> list, AdminUser adminUser) throws BizException {
-        Long beginLong = CommonUtils.getTimestamp().getTime();
         int i= 3;
         try{
             String hqlmem = "from MemberWallet where useMark >= 0 and ((packKindId = 0) or (packKindId = 1) or (packKindId = 2) or (packKindId = -3))";
@@ -643,10 +666,8 @@ public class WhiteListServiceImpl implements WhiteListService{
                 //车场发生变化
                 if (!carparkNameAfter.equals(carparkName)){
                     //之前的车场要下发
-                    System.out.println("新车场：" + carparkNameAfter + " 老车场：" + carparkName);
                     if (whiteParamsList != null){
                         for(InOutCarRoadInfo carRoadInfo : carRoadInfoList){
-                            System.out.println("车道名称：" + carRoadInfo.getCarRoadName());
                             String dev_hql = "from DeviceInfo where ownCarRoad = ? and deviceType = '0' and useMark >= 0";
                             List<DeviceInfo> deviceInfos = (List<DeviceInfo>)hibernateBaseDao.queryForList(dev_hql,carRoadInfo.getCarRoadId());
                             for(DeviceInfo deviceInfo : deviceInfos){
@@ -793,7 +814,6 @@ public class WhiteListServiceImpl implements WhiteListService{
                 hibernateBaseDao.save(memberWallet);
                 if (i == (list.size() - 1)){
                     for(InOutCarRoadInfo carRoadInfo : carRoadInfoList){
-                        System.out.println("车道名称：" + carRoadInfo.getCarRoadName());
                         String dev_hql = "from DeviceInfo where ownCarRoad = ? and deviceType = '0' and useMark >= 0";
                         List<DeviceInfo> deviceInfos = (List<DeviceInfo>)hibernateBaseDao.queryForList(dev_hql,carRoadInfo.getCarRoadId());
                         for(DeviceInfo deviceInfo : deviceInfos){
@@ -834,22 +854,13 @@ public class WhiteListServiceImpl implements WhiteListService{
                     String username = jsonObject.getString("username");
                     String password = jsonObject.getString("password");
                     Integer totalCount = Integer.valueOf(jsonObject.getString("count"));
-                    System.out.println(deviceIp + "：" + totalCount);
                     JSONObject whiteParams = jsonObject.getJSONObject("whiteParamsList");
                     deviceManageUtils.addWhiteMemberList(deviceIp,devicePort,username,password,whiteParams,totalCount);
                 }
-                Long endLong = CommonUtils.getTimestamp().getTime();
-                System.out.println("时间间隔为：" + ((endLong - beginLong)/1000));
             }
         }catch (TransactionException e){
-            if ("on".equals(AppInfo.isConnectCloud)) {
-                UploadWhiteListThread.setSuspend(false);
-            }
             throw new BizException("导入白名单超时");
         }catch (Exception e){
-            if ("on".equals(AppInfo.isConnectCloud)) {
-                UploadWhiteListThread.setSuspend(false);
-            }
             LOGGER.error("导入白名单第[" + (i + 1) + "]行错误，错误原因为：" + e.getMessage());
             throw new BizException("导入白名单第[" + (i + 1) + "]行错误，错误原因为：" + e.getMessage());
         }

@@ -66,11 +66,11 @@
 
             <div class="col-xs-3 col-xs-3 col-sm-3 col-md-3 col-lg-3 no-padding">
                 <div class="input-group m-b">
-                    <span class="input-group-addon">备注信息</span>
+                    <span class="input-group-addon">出场情况</span>
                     <select id="markInfo" data-placeholder="" class="form-control"  >
                         <option value="">全部</option>
-                        <option value="0">无</option>
-                        <option value="1">有</option>
+                        <option value="0">未出场</option>
+                        <option value="1">已出场</option>
                     </select>
                 </div>
             </div>

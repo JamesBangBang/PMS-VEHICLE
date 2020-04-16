@@ -139,12 +139,13 @@ public interface DeviceManageUtils {
     JSONObject getWhiteSet(String ip,Integer port,String username,String password);
 
     /**
-     * 添加白名单数据
-     * @param ip
-     * @param username
-     * @param password
-     */
-    void addWhiteMember(String ip,Integer port,String username,String password,JSONObject params);
+     * @Author chenbinbin
+     * @Description 添加单个白名单
+     * @Date 14:26 2020/3/2
+     * @Param [ip, port, username, password, params]
+     * @return java.lang.Integer
+     **/
+    Integer addWhiteMember(String ip,Integer port,String username,String password,JSONObject params);
 
     /**
      * 添加白名单数据
@@ -155,14 +156,13 @@ public interface DeviceManageUtils {
     void addWhiteMemberList(String ip,Integer port,String username,String password,JSONObject params,int count);
 
     /**
-     * 删除白名单数据
-     * @param ip
-     * @param username
-     * @param password
-     * @param params
-     */
-    void delWhiteMember(String ip,Integer port,String username,String password,JSONObject params);
-
+     * @Author chenbinbin
+     * @Description 删除白名单数据
+     * @Date 14:20 2020/3/2
+     * @Param [ip, port, username, password, params]
+     * @return java.lang.Integer
+     **/
+    Integer delWhiteMember(String ip,Integer port,String username,String password,JSONObject params);
 
     /**
      * 获取所有白名单数据
@@ -174,13 +174,13 @@ public interface DeviceManageUtils {
     List getWhiteMemberList(String ip,Integer port,String username,String password);
 
     /**
-     * 更新白名单数据
-     * @param ip
-     * @param username
-     * @param password
-     * @param params
-     */
-    void updateWhiteMember(String ip,Integer port,String username,String password,JSONObject params);
+     * @Author chenbinbin
+     * @Description 更新单个白名单
+     * @Date 14:27 2020/3/2
+     * @Param [ip, port, username, password, params]
+     * @return void
+     **/
+    Integer updateWhiteMember(String ip,Integer port,String username,String password,JSONObject params);
 
     /**
      * 导入白名单数据

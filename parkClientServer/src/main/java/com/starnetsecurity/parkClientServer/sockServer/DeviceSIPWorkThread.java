@@ -156,7 +156,7 @@ public class DeviceSIPWorkThread extends Thread {
                 int second = 30;
                 Timestamp now = CommonUtils.getTimestamp();
                 if((now.getTime() - activeTime.getTime()) > (second * 1000)){
-                    LOGGER.info("超过{}秒未检测到心跳包数据,设备下线处理,设备IP:{}:",second,socketClient.getSocket().getInetAddress());
+                    LOGGER.error("超过{}秒未检测到心跳包数据,设备下线处理,设备IP:{}:",second,socketClient.getSocket().getInetAddress());
                     DeviceSIPServer.removeClient(socketClient);
                     SocketUtils.closeSocket(socketClient.getSocket());
                     socketClient.setSocket(null);

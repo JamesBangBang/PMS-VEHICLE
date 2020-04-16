@@ -126,7 +126,6 @@ public class BizExceptionHandler implements HandlerExceptionResolver {
 
         }
 
-        LOGGER.info("Error Type : {} , Error View : {}", ex.getClass(), viewUri);
         return viewUri;
     }
 
