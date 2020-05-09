@@ -3,13 +3,10 @@ package com.starnetsecurity.parkClientServer.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import com.alibaba.fastjson.serializer.URICodec;
 import com.starnetsecurity.common.dao.HibernateBaseDao;
 import com.starnetsecurity.common.exception.BizException;
 import com.starnetsecurity.common.util.CommonUtils;
-import com.starnetsecurity.common.util.Constant;
 import com.starnetsecurity.common.util.HttpRequestUtils;
-import com.starnetsecurity.common.util.Util;
 import com.starnetsecurity.commonService.util.DeviceManageUtils;
 import com.starnetsecurity.commonService.util.StarnetDeviceUtils;
 import com.starnetsecurity.parkClientServer.clientEnum.LogEnum;
@@ -21,15 +18,11 @@ import com.starnetsecurity.parkClientServer.sockServer.*;
 
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.collections.map.HashedMap;
-import org.apache.commons.lang.ClassUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.shiro.codec.Base64;
-import org.apache.shiro.codec.CodecException;
 import org.apache.shiro.codec.Hex;
 import org.apache.shiro.crypto.AesCipherService;
-import org.apache.shiro.crypto.UnknownAlgorithmException;
 import org.apache.shiro.crypto.hash.SimpleHash;
-import org.hibernate.HibernateException;
 import org.hibernate.SQLQuery;
 import org.hibernate.transform.Transformers;
 import org.slf4j.Logger;
@@ -41,11 +34,10 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
-import java.net.URLDecoder;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import com.starnetsecurity.parkClientServer.service.ClientBizService;
+
 
 /**
  * Created by 宏炜 on 2017-12-11.
@@ -72,6 +64,39 @@ public class ClientBizServiceImpl implements ClientBizService {
 
     @Autowired
     NewOrderParkService newOrderParkService;
+
+    /**
+     * @Author chenbinbin
+     * @Description 计算车位
+     * @Date 9:42 2020/4/29
+     * @Param [carparkId, inoutType, carno]
+     * @return void
+     **/
+    private void calculateParkSpace(String carparkId,Integer inoutType,String carno){
+        CarparkInfo carparkInfo = (CarparkInfo)baseDao.getById(CarparkInfo.class,carparkId);
+        if (!CommonUtils.isEmpty(carparkInfo)){
+            if (inoutType.equals(0)){
+                Integer availableCarSpace = carparkInfo.getAvailableCarSpace() > 0 ? carparkInfo.getAvailableCarSpace() - 1 : 0;
+                if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
+                    LOGGER.error(carno + "入场真实车位数为：" +  availableCarSpace);
+                }
+                carparkInfo.setAvailableCarSpace(availableCarSpace);
+                carparkInfo.setCarparkNo(carparkInfo.getCarparkNo()-1);             //隐藏值
+                baseDao.save(carparkInfo);
+            }else {
+                if (carparkInfo.getCarparkNo() >= 0) {
+                    Integer availableCarSpace = carparkInfo.getAvailableCarSpace() < carparkInfo.getTotalCarSpace() ? carparkInfo.getAvailableCarSpace() + 1 : carparkInfo.getTotalCarSpace();
+                    if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
+                        LOGGER.error(carno + "出场真实车位数为：" +  availableCarSpace);
+                    }
+                    carparkInfo.setAvailableCarSpace(availableCarSpace);
+                }
+                Integer realAvailableCarSpace = carparkInfo.getCarparkNo() < carparkInfo.getTotalCarSpace() ? carparkInfo.getCarparkNo() + 1 : carparkInfo.getTotalCarSpace();
+                carparkInfo.setCarparkNo(realAvailableCarSpace);
+                baseDao.save(carparkInfo);
+            }
+        }
+    }
 
     @Override
     public JSONObject login(String username, String password, String ips, SocketClient socketClient) throws BizException {
@@ -336,7 +361,7 @@ public class ClientBizServiceImpl implements ClientBizService {
                     //先开闸，再播报语音
                     if (releaseMode.equals("1")){
                         if (carparkName.equals("海西1号地库") || carparkName.equals("海西2号地库")){
-                            LOGGER.info(inCarno + "在" +  inRoadName + "开闸入场");
+                            LOGGER.error(inCarno + "在" +  inRoadName + "开闸入场");
                         }
                         deviceManageUtils.openRoadGate(deviceInfo.getDeviceIp(),Integer.parseInt(deviceInfo.getDevicePort()),
                                 deviceInfo.getDeviceUsername(),deviceInfo.getDevicePwd());
@@ -351,13 +376,7 @@ public class ClientBizServiceImpl implements ClientBizService {
                         if (!isRepeatIn) {                      //没有重复入场
                             if (!CommonUtils.isEmpty(memberKind)) {
                                 if (memberKind.getIsStatistic().equals("1")) {
-                                    Integer availableCarSpace = carparkInfo.getAvailableCarSpace() > 0 ? carparkInfo.getAvailableCarSpace() - 1 : 0;
-                                    if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
-                                        LOGGER.info(inCarno + "入场真实车位数为：" +  availableCarSpace);
-                                    }
-                                    carparkInfo.setAvailableCarSpace(availableCarSpace);
-                                    carparkInfo.setCarparkNo(carparkInfo.getCarparkNo()-1);             //隐藏值
-                                    baseDao.save(carparkInfo);
+                                    calculateParkSpace(carparkId,0,inCarno);
                                 }
                             }
                         }
@@ -518,16 +537,8 @@ public class ClientBizServiceImpl implements ClientBizService {
                             if (!(inRecordInfo.getInoutStatus().equals(3))){    //入场车辆不是离线数据
                                 if (!CommonUtils.isEmpty(memberKind)) {
                                     if (memberKind.getIsStatistic().equals("1")) {
-                                        if (carparkInfo.getCarparkNo() >= 0) {
-                                            Integer availableCarSpace = carparkInfo.getAvailableCarSpace() < carparkInfo.getTotalCarSpace() ? carparkInfo.getAvailableCarSpace() + 1 : carparkInfo.getTotalCarSpace();
-                                            if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
-                                                LOGGER.info(outCarno + "出场真实车位数为：" +  availableCarSpace);
-                                            }
-                                            carparkInfo.setAvailableCarSpace(availableCarSpace);
-                                        }
-                                        Integer realAvailableCarSpace = carparkInfo.getCarparkNo() < carparkInfo.getTotalCarSpace() ? carparkInfo.getCarparkNo() + 1 : carparkInfo.getTotalCarSpace();
-                                        carparkInfo.setCarparkNo(realAvailableCarSpace);
-                                        baseDao.save(carparkInfo);
+                                        //计算车位
+                                        calculateParkSpace(carparkId,1,outCarno);
                                     }
                                 }
                             }
@@ -562,7 +573,7 @@ public class ClientBizServiceImpl implements ClientBizService {
 
                     if (releaseMode.equals("1")){
                         if (carparkName.equals("海西1号地库") || carparkName.equals("海西2号地库")){
-                            LOGGER.info(outCarno + "在" +  outRoadName + "开闸出场");
+                            LOGGER.error(outCarno + "在" +  outRoadName + "开闸出场");
                         }
                         deviceManageUtils.openRoadGate(deviceInfo.getDeviceIp(),Integer.parseInt(deviceInfo.getDevicePort()),
                                 deviceInfo.getDeviceUsername(),deviceInfo.getDevicePwd());
@@ -781,13 +792,7 @@ public class ClientBizServiceImpl implements ClientBizService {
                     if (!isRepeatIn) {
                         if (!CommonUtils.isEmpty(memberKind)) {
                             if (memberKind.getIsStatistic().equals("1")) {
-                                Integer availableCarSpace = carparkInfo.getAvailableCarSpace() > 0 ? carparkInfo.getAvailableCarSpace() - 1 : 0;
-                                if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
-                                    LOGGER.info(inOutCarno + "入场真实车位数为：" +  availableCarSpace);
-                                }
-                                carparkInfo.setAvailableCarSpace(availableCarSpace);
-                                carparkInfo.setCarparkNo(carparkInfo.getCarparkNo()-1);             //隐藏值
-                                baseDao.save(carparkInfo);
+                                calculateParkSpace(carparkId,0,inOutCarno);
                             }
                         }
                     }
@@ -871,16 +876,7 @@ public class ClientBizServiceImpl implements ClientBizService {
                             if (!(inRecordInfo.getInoutStatus().equals(3))){    //入场车辆不是离线数据
                                 if (!CommonUtils.isEmpty(memberKind)) {
                                     if (memberKind.getIsStatistic().equals("1")) {
-                                        if (carparkInfo.getCarparkNo() >= 0) {
-                                            Integer availableCarSpace = carparkInfo.getAvailableCarSpace() < carparkInfo.getTotalCarSpace() ? carparkInfo.getAvailableCarSpace() + 1 : carparkInfo.getTotalCarSpace();
-                                            if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
-                                                LOGGER.info(inOutCarno + "出场真实车位数为：" +  availableCarSpace);
-                                            }
-                                            carparkInfo.setAvailableCarSpace(availableCarSpace);
-                                        }
-                                        Integer realAvailableCarSpace = carparkInfo.getCarparkNo() < carparkInfo.getTotalCarSpace() ? carparkInfo.getCarparkNo() + 1 : carparkInfo.getTotalCarSpace();
-                                        carparkInfo.setCarparkNo(realAvailableCarSpace);
-                                        baseDao.save(carparkInfo);
+                                        calculateParkSpace(carparkId,1,inOutCarno);
                                     }
                                 }
                             }
@@ -1095,6 +1091,9 @@ public class ClientBizServiceImpl implements ClientBizService {
                 Timestamp inTime = Timestamp.valueOf(inOutTime.replaceAll("/","-"));
                 /** 获取是否开闸等信息 **/
                 Map<String,String> openGateInfo = IsNeedOpenGate(carPlate,0,inTime,carparkInfo,memberWallet,uartDeviceAddr,0);
+                if (CommonUtils.isEmpty(openGateInfo)){
+                    return null;
+                }
 
                 /** 获取收费类型信息 **/
                 MemberKind memberKind = new MemberKind();
@@ -1717,175 +1716,173 @@ public class ClientBizServiceImpl implements ClientBizService {
     public Map<String,String> IsNeedOpenGate(String carPlate,Integer inOutType,Timestamp inOutTime,CarparkInfo carparkInfo,MemberWallet memberWallet,
                                    String gateState,double chargeAmount){
         Map<String,String> res = new HashedMap();
-        try {
-            String isNeedOpenGate = "0";             //0-不开闸；1-开闸
-            Integer openGateState;              //开闸模式
-            String limiReason = "临时车限制通行";
+        String isNeedOpenGate = "0";             //0-不开闸；1-开闸
+        Integer openGateState;              //开闸模式
+        String limiReason = "临时车限制通行";
 
-            if((gateState.equals("0")) || (gateState.equals("2")))
-                openGateState = 1;              //全部开闸
-            else if (gateState.equals("3"))
-                openGateState = -1;             //全部不开闸
-            else
-                openGateState = 0;              //白名单开闸
+        if((gateState.equals("0")) || (gateState.equals("2")))
+            openGateState = 1;              //全部开闸
+        else if (gateState.equals("3"))
+            openGateState = -1;             //全部不开闸
+        else
+            openGateState = 0;              //白名单开闸
 
-            if (!CommonUtils.isEmpty(memberWallet))
-                res =  GetMemberWalletInfo(carPlate,inOutType,inOutTime,memberWallet);
-            if(inOutType.equals(0)){
-                switch (openGateState){
-                    case -1:
-                    {
-                        isNeedOpenGate = "0";
-                        limiReason = "全部车辆限行";
-                        break;
-                    }
-                    case 0:
-                    {
-                        if(!CommonUtils.isEmpty(memberWallet)){
-                            //非临时车
-                            limiReason = "";
-                            if(res.get("isValid").toString().equals("1")) {
-                                //车场封闭
-                                if ("1".equals(carparkInfo.getIsClose())){
-                                    if ("0".equals(carparkInfo.getCloseType())){    //封闭车场类型为剩余总车位临界值
-                                        if (carparkInfo.getCriticalValue()>carparkInfo.getAvailableCarSpace()){
-                                            if (res.get("isUseParkinglot").toString().equals("1")) { //使用固定车位
-                                                //过期车辆不允许入场，车辆过期
-                                                isNeedOpenGate = (carparkInfo.getIsOverdueAutoOpen().equals("1") && res.get("isOverdue").toString().equals("1"))? "0" : "1";
-                                                if (isNeedOpenGate.equals("0"))
-                                                    limiReason = "过期车辆禁止入场";
-                                            }else {
-                                                isNeedOpenGate = "0";
-                                                limiReason = "车场封闭限制通行";
-                                            }
-                                        }else {
+        if (!CommonUtils.isEmpty(memberWallet)) {
+            res = GetMemberWalletInfo(carPlate, inOutType, inOutTime, memberWallet);
+        }
+        if(inOutType.equals(0)){
+            switch (openGateState){
+                case -1:
+                {
+                    isNeedOpenGate = "0";
+                    limiReason = "全部车辆限行";
+                    break;
+                }
+                case 0:
+                {
+                    if(!CommonUtils.isEmpty(memberWallet)){
+                        //非临时车
+                        limiReason = "";
+                        if(res.get("isValid").toString().equals("1")) {
+                            //车场封闭
+                            if ("1".equals(carparkInfo.getIsClose())){
+                                if ("0".equals(carparkInfo.getCloseType())){    //封闭车场类型为剩余总车位临界值
+                                    if (carparkInfo.getCriticalValue()>carparkInfo.getAvailableCarSpace()){
+                                        if (res.get("isUseParkinglot").toString().equals("1")) { //使用固定车位
+                                            //过期车辆不允许入场，车辆过期
                                             isNeedOpenGate = (carparkInfo.getIsOverdueAutoOpen().equals("1") && res.get("isOverdue").toString().equals("1"))? "0" : "1";
                                             if (isNeedOpenGate.equals("0"))
                                                 limiReason = "过期车辆禁止入场";
-                                        }
-                                    }else {                                         //封闭车场类型为剩余大场车位临界值
-                                        String hql = "from CarparkInfo where ownCarparkNo = ? and useMark >= 0";
-                                        List<CarparkInfo> carparkInfoList = (List<CarparkInfo>)baseDao.queryForList(hql,carparkInfo.getCarparkId());
-                                        Integer carSpaceSonPark = 0;        //子车场的车位数
-                                        for (CarparkInfo carparkInfoSon : carparkInfoList){
-                                            carSpaceSonPark = carSpaceSonPark + carparkInfoSon.getAvailableCarSpace();
-                                        }
-                                        Integer carSpaceFatherPark = carparkInfo.getAvailableCarSpace() - carSpaceSonPark;  //剩余大场车位数
-                                        if (carparkInfo.getCriticalValue() > carSpaceFatherPark){
-                                            if (res.get("isUseParkinglot").toString().equals("1")) { //使用固定车位
-                                                //过期车辆不允许入场，车辆过期
-                                                isNeedOpenGate = (carparkInfo.getIsOverdueAutoOpen().equals("1") && res.get("isOverdue").toString().equals("1"))? "0" : "1";
-                                                if (isNeedOpenGate.equals("0"))
-                                                    limiReason = "过期车辆禁止入场";
-                                            }else {
-                                                isNeedOpenGate = "0";
-                                                limiReason = "车场封闭限制通行";
-                                            }
                                         }else {
-                                            isNeedOpenGate = (carparkInfo.getIsOverdueAutoOpen().equals("1") && res.get("isOverdue").toString().equals("1"))? "0" : "1";
-                                            if (isNeedOpenGate.equals("0"))
-                                                limiReason = "过期车辆禁止入场";
+                                            isNeedOpenGate = "0";
+                                            limiReason = "车场封闭限制通行";
                                         }
+                                    }else {
+                                        isNeedOpenGate = (carparkInfo.getIsOverdueAutoOpen().equals("1") && res.get("isOverdue").toString().equals("1"))? "0" : "1";
+                                        if (isNeedOpenGate.equals("0"))
+                                            limiReason = "过期车辆禁止入场";
                                     }
-                                }else {
-                                    isNeedOpenGate = (carparkInfo.getIsOverdueAutoOpen().equals("1") && res.get("isOverdue").toString().equals("1"))? "0" : "1";
-                                    if (isNeedOpenGate.equals("0"))
-                                        limiReason = "过期车辆禁止入场";
+                                }else {                                         //封闭车场类型为剩余大场车位临界值
+                                    String hql = "from CarparkInfo where ownCarparkNo = ? and useMark >= 0";
+                                    List<CarparkInfo> carparkInfoList = (List<CarparkInfo>)baseDao.queryForList(hql,carparkInfo.getCarparkId());
+                                    Integer carSpaceSonPark = 0;        //子车场的车位数
+                                    for (CarparkInfo carparkInfoSon : carparkInfoList){
+                                        carSpaceSonPark = carSpaceSonPark + carparkInfoSon.getAvailableCarSpace();
+                                    }
+                                    Integer carSpaceFatherPark = carparkInfo.getAvailableCarSpace() - carSpaceSonPark;  //剩余大场车位数
+                                    if (carparkInfo.getCriticalValue() > carSpaceFatherPark){
+                                        if (res.get("isUseParkinglot").toString().equals("1")) { //使用固定车位
+                                            //过期车辆不允许入场，车辆过期
+                                            isNeedOpenGate = (carparkInfo.getIsOverdueAutoOpen().equals("1") && res.get("isOverdue").toString().equals("1"))? "0" : "1";
+                                            if (isNeedOpenGate.equals("0"))
+                                                limiReason = "过期车辆禁止入场";
+                                        }else {
+                                            isNeedOpenGate = "0";
+                                            limiReason = "车场封闭限制通行";
+                                        }
+                                    }else {
+                                        isNeedOpenGate = (carparkInfo.getIsOverdueAutoOpen().equals("1") && res.get("isOverdue").toString().equals("1"))? "0" : "1";
+                                        if (isNeedOpenGate.equals("0"))
+                                            limiReason = "过期车辆禁止入场";
+                                    }
                                 }
-                            }else{
-                                //黑名单车辆
-                                isNeedOpenGate = "0";
-                                limiReason = "黑名单禁止入场";
-                            }
-
-                        }else{
-                            //临时车
-                            isNeedOpenGate = "0";
-                            limiReason = "临时车限制通行";
-                        }
-                        break;
-                    }
-                    case 1:
-                    {
-                        isNeedOpenGate = "1";
-                        String hql = "from CarparkInfo where ownCarparkNo = ? and useMark >= 0";
-                        List<CarparkInfo> carparkInfoList = (List<CarparkInfo>)baseDao.queryForList(hql,carparkInfo.getCarparkId());
-                        Integer carSpaceSonPark = 0;        //子车场的车位数
-                        for (CarparkInfo carparkInfoSon : carparkInfoList){
-                            carSpaceSonPark = carSpaceSonPark + carparkInfoSon.getAvailableCarSpace();
-                        }
-                        Integer carSpaceFatherPark = carparkInfo.getAvailableCarSpace() - carSpaceSonPark;  //剩余大场车位数
-                        if (carparkInfo.getCriticalValue() > carSpaceFatherPark){
-                            if (res.get("isUseParkinglot").toString().equals("1")) { //使用固定车位
-                                //过期车辆不允许入场，车辆过期
+                            }else {
                                 isNeedOpenGate = (carparkInfo.getIsOverdueAutoOpen().equals("1") && res.get("isOverdue").toString().equals("1"))? "0" : "1";
                                 if (isNeedOpenGate.equals("0"))
                                     limiReason = "过期车辆禁止入场";
-                            }else {
-                                isNeedOpenGate = "0";
-                                limiReason = "车场封闭限制通行";
-                            }
-                        }
-                        break;
-                    }
-                }
-            }else{      //出场车辆
-                switch (openGateState){
-                    case -1:
-                    {
-                        isNeedOpenGate = "0";
-                        limiReason = "全部车辆限行";
-                        break;
-                    }
-                    case 0:
-                    {
-                        if(!CommonUtils.isEmpty(memberWallet)){
-                            //非临时车
-                            //res =  GetMemberWalletInfo(carPlate,inOutType,inOutTime,memberWallet);
-                            if(res.get("isValid").toString().equals("1")){
-                                //白名单出场
-                                if(chargeAmount > 0){
-                                    isNeedOpenGate = "0";
-                                    limiReason = "缴费车辆";
-
-                                }else{
-                                    //收费0元自动放行只针对外部临时车
-                                    isNeedOpenGate =  "1";
-                                    limiReason = "";
-                                }
-                            }else{
-                                //黑名单禁止出场
-                                isNeedOpenGate = "0";
-                                limiReason = "黑名单限行";
                             }
                         }else{
-                            //临时车出场
+                            //黑名单车辆
+                            isNeedOpenGate = "0";
+                            limiReason = "黑名单禁止入场";
+                        }
+
+                    }else{
+                        //临时车
+                        isNeedOpenGate = "0";
+                        limiReason = "临时车限制通行";
+                    }
+                    break;
+                }
+                case 1:
+                {
+                    isNeedOpenGate = "1";
+                    String hql = "from CarparkInfo where ownCarparkNo = ? and useMark >= 0";
+                    List<CarparkInfo> carparkInfoList = (List<CarparkInfo>)baseDao.queryForList(hql,carparkInfo.getCarparkId());
+                    Integer carSpaceSonPark = 0;        //子车场的车位数
+                    for (CarparkInfo carparkInfoSon : carparkInfoList){
+                        carSpaceSonPark = carSpaceSonPark + carparkInfoSon.getAvailableCarSpace();
+                    }
+                    Integer carSpaceFatherPark = carparkInfo.getAvailableCarSpace() - carSpaceSonPark;  //剩余大场车位数
+                    if (carparkInfo.getCriticalValue() > carSpaceFatherPark){
+                        if (res.containsKey("isUseParkinglot") && res.get("isUseParkinglot").toString().equals("1")) { //使用固定车位
+                            //过期车辆不允许入场，车辆过期
+                            isNeedOpenGate = (carparkInfo.getIsOverdueAutoOpen().equals("1") && res.get("isOverdue").toString().equals("1"))? "0" : "1";
+                            if (isNeedOpenGate.equals("0"))
+                                limiReason = "过期车辆禁止入场";
+                        }else {
+                            /*isNeedOpenGate = "0";
+                            limiReason = "车场封闭限制通行";*/
+                            return null;
+                        }
+                    }
+                    break;
+                }
+            }
+        }else{      //出场车辆
+            switch (openGateState){
+                case -1:
+                {
+                    isNeedOpenGate = "0";
+                    limiReason = "全部车辆限行";
+                    break;
+                }
+                case 0:
+                {
+                    if(!CommonUtils.isEmpty(memberWallet)){
+                        //非临时车
+                        //res =  GetMemberWalletInfo(carPlate,inOutType,inOutTime,memberWallet);
+                        if(res.get("isValid").toString().equals("1")){
+                            //白名单出场
                             if(chargeAmount > 0){
                                 isNeedOpenGate = "0";
                                 limiReason = "缴费车辆";
+
                             }else{
-                                isNeedOpenGate =  carparkInfo.getIsAutoOpen().equals("0") ? "1" : "0";
-                                if (isNeedOpenGate.equals("0"))
-                                    limiReason = "缴费0元停车检查";
-                                else
-                                    limiReason = "";
+                                //收费0元自动放行只针对外部临时车
+                                isNeedOpenGate =  "1";
+                                limiReason = "";
                             }
+                        }else{
+                            //黑名单禁止出场
+                            isNeedOpenGate = "0";
+                            limiReason = "黑名单限行";
                         }
-                        break;
+                    }else{
+                        //临时车出场
+                        if(chargeAmount > 0){
+                            isNeedOpenGate = "0";
+                            limiReason = "缴费车辆";
+                        }else{
+                            isNeedOpenGate =  carparkInfo.getIsAutoOpen().equals("0") ? "1" : "0";
+                            if (isNeedOpenGate.equals("0"))
+                                limiReason = "缴费0元停车检查";
+                            else
+                                limiReason = "";
+                        }
                     }
-                    case 1:
-                    {
-                        isNeedOpenGate = "1";
-                        limiReason = "";
-                        break;
-                    }
+                    break;
+                }
+                case 1:
+                {
+                    isNeedOpenGate = "1";
+                    limiReason = "";
+                    break;
                 }
             }
-            res.put("isNeedOpenGate",isNeedOpenGate);
-            res.put("limiReason",limiReason);
-        } catch (Exception e) {
-            LOGGER.error("获取是否开闸信息异常");
         }
+        res.put("isNeedOpenGate",isNeedOpenGate);
+        res.put("limiReason",limiReason);
         return res;
     }
     @Override
@@ -1894,86 +1891,82 @@ public class ClientBizServiceImpl implements ClientBizService {
 
         Map<String,String> res = new HashedMap();
         //黑名单车无效,置为0
-        try {
-            if(memberWallet.getPackKindId().equals(-1))
-                res.put("isValid","0");
-            else
-                res.put("isValid","1");
+        if(memberWallet.getPackKindId().equals(-1))
+            res.put("isValid","0");
+        else
+            res.put("isValid","1");
 
-            //判断是否过期
-            switch(memberWallet.getPackKindId()){
-                case -3:case -2:case 0:{
-                    if(memberWallet.getEffectiveStartTime().getTime() <= inOutTime.getTime() && inOutTime.getTime() <= memberWallet.getEffectiveEndTime().getTime())
-                        res.put("isOverdue","0");
-                    else
-                        res.put("isOverdue","1");
-                    break;
-                }
-                case 1:{
-                    if(memberWallet.getSurplusNumber() > 0)
-                        res.put("isOverdue","0");
-                    else
-                        res.put("isOverdue","1");
-                    break;
-                }
-                case 2:{
-                    if(memberWallet.getSurplusAmount() > 0)
-                        res.put("isOverdue","0");
-                    else
-                        res.put("isOverdue","1");
-                    break;
-                }
-                default:{
-                    //黑名单车统一算作过期
+        //判断是否过期
+        switch(memberWallet.getPackKindId()){
+            case -3:case -2:case 0:{
+                if(memberWallet.getEffectiveStartTime().getTime() <= inOutTime.getTime() && inOutTime.getTime() <= memberWallet.getEffectiveEndTime().getTime())
                     res.put("isOverdue","0");
-                    break;
-                }
+                else
+                    res.put("isOverdue","1");
+                break;
             }
+            case 1:{
+                if(memberWallet.getSurplusNumber() > 0)
+                    res.put("isOverdue","0");
+                else
+                    res.put("isOverdue","1");
+                break;
+            }
+            case 2:{
+                if(memberWallet.getSurplusAmount() > 0)
+                    res.put("isOverdue","0");
+                else
+                    res.put("isOverdue","1");
+                break;
+            }
+            default:{
+                //黑名单车统一算作过期
+                res.put("isOverdue","0");
+                break;
+            }
+        }
 
-            //两者相等代表是单辆车，否者的话代表的是A,B车
-            if(carPlate.equals(memberWallet.getMenberNo())){
-                res.put("isUseWallet","1");
-                String isUseParkinglot = CommonUtils.isEmpty(memberWallet.getParkingLotId()) ? "0" : "1";
+        //两者相等代表是单辆车，否者的话代表的是A,B车
+        if(carPlate.equals(memberWallet.getMenberNo())){
+            res.put("isUseWallet","1");
+            String isUseParkinglot = CommonUtils.isEmpty(memberWallet.getParkingLotId()) ? "0" : "1";
+            res.put("isUseParkinglot",isUseParkinglot);
+            res.put("isMultiCarno","0");    //isMultiCarno是否是AB车 0-否；1-是
+        }else{
+            res.put("isMultiCarno","1");
+            if(inOutType.equals(0)){
+                String multiCarno = GetOtherCarno(carPlate,memberWallet.getMenberNo());
+                String hql = "select charge_info_id from order_inout_record where"
+                        + " car_no in (" + multiCarno + ")"
+                        + " and carpark_id = '" + memberWallet.getCarPark()
+                        + "' and in_time <= '" + inOutTime.toString()
+                        + "' and out_time IS NULL";
+                SQLQuery sqlQuery = baseDao.getHibernateTemplate().getSessionFactory().getCurrentSession().createSQLQuery(hql);
+                List<Map<String, Object>> orderInoutRecordList = sqlQuery.setResultTransformer(Transformers.ALIAS_TO_ENTITY_MAP).list();
+
+                //场内车辆数
+                Integer occupiedNum = orderInoutRecordList.size();
+                String isUseWallet = occupiedNum >= Integer.valueOf(memberWallet.getValidMenberCount()) ? "0" : "1";
+                String isUseParkinglot = occupiedNum >= memberWallet.getParkingLotId().split(",").length ? "0" : "1";
+                res.put("isUseWallet",isUseWallet);
                 res.put("isUseParkinglot",isUseParkinglot);
-                res.put("isMultiCarno","0");    //isMultiCarno是否是AB车 0-否；1-是
-            }else{
-                res.put("isMultiCarno","1");
-                if(inOutType.equals(0)){
-                    String multiCarno = GetOtherCarno(carPlate,memberWallet.getMenberNo());
-                    String hql = "select charge_info_id from order_inout_record where"
-                            + " car_no in (" + multiCarno + ")"
-                            + " and carpark_id = '" + memberWallet.getCarPark()
-                            + "' and in_time <= '" + inOutTime.toString()
-                            + "' and out_time IS NULL";
-                    SQLQuery sqlQuery = baseDao.getHibernateTemplate().getSessionFactory().getCurrentSession().createSQLQuery(hql);
-                    List<Map<String, Object>> orderInoutRecordList = sqlQuery.setResultTransformer(Transformers.ALIAS_TO_ENTITY_MAP).list();
-
-                    //场内车辆数
-                    Integer occupiedNum = orderInoutRecordList.size();
-                    String isUseWallet = occupiedNum >= Integer.valueOf(memberWallet.getValidMenberCount()) ? "0" : "1";
-                    String isUseParkinglot = occupiedNum >= memberWallet.getParkingLotId().split(",").length ? "0" : "1";
-                    res.put("isUseWallet",isUseWallet);
-                    res.put("isUseParkinglot",isUseParkinglot);
-                }
-                else{
-                    String multiCarno = GetOtherCarno(carPlate,memberWallet.getMenberNo());
-                    String hql = "select charge_info_id from order_inout_record where"
-                            + " car_no in (" + multiCarno + ")"
-                            + " and carpark_id = '" + memberWallet.getCarPark()
-                            + "' and in_time <= '" + inOutTime.toString()
-                            + "' and out_time IS NULL";
-                    SQLQuery sqlQuery = baseDao.getHibernateTemplate().getSessionFactory().getCurrentSession().createSQLQuery(hql);
-                    List<Map<String, Object>> orderInoutRecordList = sqlQuery.setResultTransformer(Transformers.ALIAS_TO_ENTITY_MAP).list();
-                    //场内车辆数
-                    Integer occupiedNum = orderInoutRecordList.size();
-                    String isUseWallet = occupiedNum >= Integer.valueOf(memberWallet.getValidMenberCount()) ? "0" : "1";
-                    String isUseParkinglot = occupiedNum >= memberWallet.getParkingLotId().split(",").length ? "0" : "1";
-                    res.put("isUseWallet",isUseWallet);
-                    res.put("isUseParkinglot",isUseParkinglot);
-                }
             }
-        } catch (Exception e) {
-            LOGGER.error("获取白名单信息异常");
+            else{
+                String multiCarno = GetOtherCarno(carPlate,memberWallet.getMenberNo());
+                String hql = "select charge_info_id from order_inout_record where"
+                        + " car_no in (" + multiCarno + ")"
+                        + " and carpark_id = '" + memberWallet.getCarPark()
+                        + "' and in_time <= '" + inOutTime.toString()
+                        + "' and out_time IS NULL";
+                SQLQuery sqlQuery = baseDao.getHibernateTemplate().getSessionFactory().getCurrentSession().createSQLQuery(hql);
+                List<Map<String, Object>> orderInoutRecordList = sqlQuery.setResultTransformer(Transformers.ALIAS_TO_ENTITY_MAP).list();
+                //场内车辆数
+                Integer occupiedNum = orderInoutRecordList.size();
+                String isUseWallet = occupiedNum >= Integer.valueOf(memberWallet.getValidMenberCount()) ? "0" : "1";
+                String isUseParkinglot = occupiedNum >= memberWallet.getParkingLotId().split(",").length ? "0" : "1";
+                res.put("isUseWallet",isUseWallet);
+                res.put("isUseParkinglot",isUseParkinglot);
+            }
         }
         return res;
     }

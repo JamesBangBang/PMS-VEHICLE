@@ -1,5 +1,6 @@
 package com.starnetsecurity.parkClientServer.service;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface RealRecordsService {
@@ -76,7 +77,7 @@ public interface RealRecordsService {
      * @Param [carNo, carparkName]
      * @return void
      **/
-    void deleteCarInPark(String carNo,String carparkName);
+    void deleteCarInPark(String carNo,String carparkName) throws IOException;
 
     /**
      * @Author chenbinbin

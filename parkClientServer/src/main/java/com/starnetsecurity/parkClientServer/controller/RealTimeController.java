@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -117,8 +118,8 @@ public class RealTimeController extends BaseController {
             }
             realRecordsService.deleteCarInPark(carNo,carparkName);
             this.success(res);
-        }catch (BizException e) {
-            this.failed(res, e);
+        }catch (Exception e) {
+            this.failed(res, e.getMessage());
         }
         return res;
     }

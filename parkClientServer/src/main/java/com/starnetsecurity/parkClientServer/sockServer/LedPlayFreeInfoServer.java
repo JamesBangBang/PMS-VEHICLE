@@ -21,7 +21,6 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.logging.Logger;
 
-import static com.sun.xml.internal.ws.spi.db.BindingContextFactory.LOGGER;
 
 /**
  * Created by JAMESBANG on 2018/8/11.

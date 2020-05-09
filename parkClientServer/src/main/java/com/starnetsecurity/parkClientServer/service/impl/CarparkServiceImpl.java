@@ -23,6 +23,8 @@ import org.apache.commons.logging.Log;
 import org.hibernate.Query;
 import org.hibernate.SQLQuery;
 import org.hibernate.transform.Transformers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +35,7 @@ import java.util.*;
 
 @Service
 public class CarparkServiceImpl implements CarparkService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CarparkServiceImpl.class);
 
     @Autowired
     HibernateBaseDao baseDao;
@@ -296,6 +299,7 @@ public class CarparkServiceImpl implements CarparkService {
     //更新停车场信息
     @Override
     public void saveParks(CarparkInfo parks,String ip,AdminUser adminUser) {
+        LOGGER.info("更新车场");
         parks.setUseMark(1);
         baseDao.save(parks);
         String hql = "FROM MemberKind WHERE carparkInfo = ? AND useType = 0";

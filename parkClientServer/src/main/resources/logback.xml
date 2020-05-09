@@ -49,10 +49,7 @@
         </filter>
     </appender>
 
-
-
-    <!-- project default level -->
-    <!--<logger name="com.starnetsecurity" level="DEBUG"/>-->
+    <logger name="com.starnetsecurity" level="DEBUG"/>
     <!--<logger name="org.springframework" level="DEBUG"/>-->
 
     <root level="DEBUG">

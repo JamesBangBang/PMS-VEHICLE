@@ -1,26 +1,31 @@
 package com.starnetsecurity.parkClientServer.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.starnetsecurity.common.dao.HibernateBaseDao;
+import com.starnetsecurity.common.exception.BizException;
 import com.starnetsecurity.common.util.CommonUtils;
+import com.starnetsecurity.common.util.HttpRequestUtils;
 import com.starnetsecurity.parkClientServer.entity.*;
+import com.starnetsecurity.parkClientServer.init.AppInfo;
 import com.starnetsecurity.parkClientServer.service.RealRecordsService;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.SQLQuery;
 import org.hibernate.transform.Transformers;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 @Service
 public class RealRecordsServiceImpl implements RealRecordsService {
-    private static org.slf4j.Logger logger = LoggerFactory.getLogger(RealRecordsServiceImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RealRecordsServiceImpl.class);
 
     @Autowired
     HibernateBaseDao baseDao;
@@ -360,7 +365,7 @@ public class RealRecordsServiceImpl implements RealRecordsService {
     }
 
     @Override
-    public void deleteCarInPark(String carNo, String carparkName) {
+    public void deleteCarInPark(String carNo, String carparkName) throws IOException {
         String hql = "from OrderInoutRecord where carNo = ? and carparkName = ? and "
                 + " outRecordId IS NULL";
         OrderInoutRecord orderInoutRecord = (OrderInoutRecord)baseDao.getUnique(hql,carNo,carparkName);
@@ -373,13 +378,18 @@ public class RealRecordsServiceImpl implements RealRecordsService {
             }
             baseDao.deleteById(OrderInoutRecord.class,orderInoutRecord.getChargeInfoId());
 
-            CarparkInfo carparkInfo = (CarparkInfo) baseDao.getById(CarparkInfo.class,carparkId);
-            if (carparkInfo.getAvailableCarSpace() < carparkInfo.getTotalCarSpace()){
-                carparkInfo.setAvailableCarSpace(carparkInfo.getAvailableCarSpace()+1);
-                carparkInfo.setCarparkNo(carparkInfo.getCarparkNo()+1);
-                baseDao.save(carparkInfo);
+            if (carparkName.equals("海西1号地库") || carparkName.equals("海西2号地库")){
+                try {
+                    JSONObject jsonObject = new JSONObject();
+                    jsonObject.put("carno",carNo);
+                    jsonObject.put("carparkId",carparkId);
+                    String res = HttpRequestUtils.postJson("http://" + AppInfo.cloudIp + ":" + AppInfo.cloudPort + "/payment/parkInfo/deleteCarInPark",jsonObject);
+                    LOGGER.info(res);
+                }catch (BizException e){
+                    throw new BizException("删除场内车辆失败：" + e.getMessage());
+                }
             }
-            logger.info("删除" + carparkName + "的场内车辆" + carNo);
+            LOGGER.info("删除" + carparkName + "的场内车辆" + carNo);
         }
     }
 

@@ -323,180 +323,159 @@ public class DeviceBizServiceImpl implements DeviceBizService {
 
     @Override
     public void pushCarPlateIndMsg(SocketClient socketClient, JSONObject params ) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException, IOException {
-        try {
-            if(CommonUtils.isEmpty(socketClient.getDeviceInfo())){
-                return;
-            }
-            if(CommonUtils.isEmpty(socketClient.getDeviceInfo().getOwnCarRoad())){
-                return;
-            }
+        if(CommonUtils.isEmpty(socketClient.getDeviceInfo())){
+            return;
+        }
+        if(CommonUtils.isEmpty(socketClient.getDeviceInfo().getOwnCarRoad())){
+            return;
+        }
 
-            DeviceManageUtils deviceManageUtils = new StarnetDeviceUtils();
-            String carPlate = params.getString("CarPlate");
-            String CarPlateColor = params.getString("Color");
-            String carType = "1";          //默认为小型车
-            if(CarPlateColor.equals("1"))
-                carType = "1";
-            else if(CarPlateColor.equals("2"))
-                carType = "2";
+        DeviceManageUtils deviceManageUtils = new StarnetDeviceUtils();
+        String carPlate = params.getString("CarPlate");
+        String CarPlateColor = params.getString("Color");
+        String carType = "1";          //默认为小型车
+        if(CarPlateColor.equals("1"))
+            carType = "1";
+        else if(CarPlateColor.equals("2"))
+            carType = "2";
+        else
+            carType = "0";
+        if(!StringUtils.isBlank(carPlate)){
+            byte[] carplates = Base64.decode(carPlate);
+            try {
+                carPlate = new String(carplates,"GBK");
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+        }
+
+        String Time = params.getString("Time");
+        String[] timeArrays = Time.substring(0,Time.length()).split("_");
+        String date = timeArrays[0].replaceAll("-","");
+        String time = timeArrays[1].replaceAll(":","");
+        String fileName = carPlate.substring(1,carPlate.length()-1) + "_" + date + "_" + time + ".jpg";
+        String fileUri = AppInfo.contextPath + "/resources/carPlateImages/" + date + "/" + socketClient.getSocket().getInetAddress().getHostAddress() + "/" + fileName;
+        params.put("photoUri", fileUri);
+        params.put("photoFileName", fileName);
+        updateRealChannelConfig(socketClient.getDeviceInfo(),carPlate,CommonUtils.getTimestamp(),fileUri);
+
+        JSONObject json = new JSONObject();
+        params.put("deviceId",socketClient.getDeviceInfo().getDeviceId());
+
+        InOutCarRoadInfo inOutCarRoadInfo = (InOutCarRoadInfo)baseDao.getById(InOutCarRoadInfo.class,socketClient.getDeviceInfo().getOwnCarRoad());
+        JSONObject roadData = new JSONObject();
+        roadData.put("autoPassType",inOutCarRoadInfo.getAutoPassType());
+        roadData.put("carRoadId",inOutCarRoadInfo.getCarRoadId());
+        roadData.put("carRoadName",Base64.encodeToString(inOutCarRoadInfo.getCarRoadName().getBytes()));
+        roadData.put("carRoadType",inOutCarRoadInfo.getCarRoadType());
+        json.put("roadData",roadData);
+        if (CommonUtils.isEmpty(inOutCarRoadInfo.getManageComputerId())){
+            LOGGER.error("手动录入记录失败：车道未绑定岗亭");
+            return;
+        }
+        PostComputerManage postComputerManage = (PostComputerManage)baseDao.getById(PostComputerManage.class,inOutCarRoadInfo.getManageComputerId());
+
+        CarparkInfo carparkInfo = (CarparkInfo)baseDao.getById(CarparkInfo.class,inOutCarRoadInfo.getOwnCarparkNo());
+        JSONObject carparkData = new JSONObject();
+        carparkData.put("availableCarSpace",carparkInfo.getAvailableCarSpace());
+        carparkData.put("carparkId",carparkInfo.getCarparkId());
+        carparkData.put("carparkName",Base64.encodeToString(carparkInfo.getCarparkName().getBytes()));
+        carparkData.put("closeType",carparkInfo.getCloseType());
+        carparkData.put("criticalValue",carparkInfo.getCriticalValue());
+        carparkData.put("ownCarparkNo",carparkInfo.getOwnCarparkNo());
+        carparkData.put("passTimeWhenBig",carparkInfo.getPassTimeWhenBig());
+        carparkData.put("totalCarSpace",carparkInfo.getTotalCarSpace());
+        carparkData.put("isClose",carparkInfo.getIsClose());
+        carparkData.put("ifIncludeCaculate",carparkInfo.getIfIncludeCaculate());
+        carparkData.put("isTestRunning",carparkInfo.getIsTestRunning());
+        carparkData.put("isOverdueAutoOpen",carparkInfo.getIsOverdueAutoOpen());
+        json.put("carparkData",carparkData);
+        String oldCarno = "";
+        if ("1".equals(inOutCarRoadInfo.getIsAutoMatchCarNo())){
+            if (!IsWhiteListCarno(carPlate,carparkInfo.getCarparkId())){
+                String correctionCarno = RedressCarno(carPlate,"0",inOutCarRoadInfo.getIsAutoMatchCarNo(),
+                        String.valueOf(inOutCarRoadInfo.getAutoMatchLeastBite()),inOutCarRoadInfo.getAutoMatchCarNoPos(),
+                        carparkInfo.getCarparkId(),inOutCarRoadInfo.getWhiteIntelligentCorrection());
+                if (!correctionCarno.equals(carPlate)){
+                    oldCarno = carPlate;
+                    carPlate = correctionCarno;
+                }
+            }
+        }
+        if (!CommonUtils.isEmpty(inOutCarRoadInfo.getIntelligentCorrection())){
+            String correctionCarno = clientBizService.CarnoIntelligentCorrect(inOutCarRoadInfo.getIntelligentCorrection(),carPlate);
+            oldCarno = carPlate;
+            carPlate = correctionCarno;
+        }
+        params.put("CarPlate",Base64.encodeToString(carPlate.getBytes()));
+        json.put("deviceData",params);
+
+
+        String hql = "from DeviceInfo where deviceType = ? and parentDeviceId = ? AND useMark >= 0 ";
+        String uartDeviceAddr = "1";            //默认是全部开闸
+        DeviceInfo childDevice = (DeviceInfo)baseDao.getUnique(hql,"2",socketClient.getDeviceInfo().getDeviceId());
+        if(!CommonUtils.isEmpty(childDevice)){
+            JSONObject openGateData = new JSONObject();
+            uartDeviceAddr = childDevice.getUartDeviceAddr();
+            openGateData.put("uartDeviceAddr",uartDeviceAddr);
+            json.put("openGateData",openGateData);
+        }
+        //根据IPC的ID和车道ID获取LED信息
+        String ledId = "";
+        String ledType = "";
+        hql = "from DeviceInfo where parentDeviceId = ? and deviceType = ? and useMark >= 0";
+        DeviceInfo ledDeviceInfo = (DeviceInfo)baseDao.getUnique(hql,socketClient.getDeviceInfo().getDeviceId() ,"3");
+        if (CommonUtils.isEmpty(ledDeviceInfo)){
+            ledDeviceInfo = (DeviceInfo)baseDao.getUnique(hql,socketClient.getDeviceInfo().getDeviceId() ,"11");
+        }
+        if (!CommonUtils.isEmpty(ledDeviceInfo)){
+            ledId = ledDeviceInfo.getDeviceId();
+            ledType = ledDeviceInfo.getDeviceType();
+        }
+
+        //获取会员及收费类型信息
+        hql = "from MemberWallet where menberNo like ? and carPark = ? AND useMark >= 0";
+        MemberWallet memberWallet = (MemberWallet)baseDao.getUnique(hql,"%" + carPlate + "%",carparkInfo.getCarparkId());
+        if (!CommonUtils.isEmpty(memberWallet)) {
+            Map<String,String> memberWalletSent = BeanUtils.describe(memberWallet);
+            memberWalletSent.put("menberNo",Base64.encodeToString(memberWalletSent.get("menberNo").getBytes()));
+            memberWalletSent.put("driverName",Base64.encodeToString(memberWalletSent.get("driverName").getBytes()));
+            memberWalletSent.put("driverInfo",Base64.encodeToString(memberWalletSent.get("driverInfo").getBytes()));
+            if (CommonUtils.isEmpty(memberWalletSent.get("parkingLotId")))
+                memberWalletSent.put("parkingLotId","");
             else
-                carType = "0";
-            if(!StringUtils.isBlank(carPlate)){
-                byte[] carplates = Base64.decode(carPlate);
-                try {
-                    carPlate = new String(carplates,"GBK");
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-            }
+                memberWalletSent.put("parkingLotId",Base64.encodeToString(memberWalletSent.get("parkingLotId").getBytes()));
+            json.put("memberWallet", memberWalletSent);
+        }else
+            json.put("memberWallet",Collections.EMPTY_MAP);
 
-            String Time = params.getString("Time");
-            String[] timeArrays = Time.substring(0,Time.length()).split("_");
-            String date = timeArrays[0].replaceAll("-","");
-            String time = timeArrays[1].replaceAll(":","");
-            String fileName = carPlate.substring(1,carPlate.length()-1) + "_" + date + "_" + time + ".jpg";
-            String fileUri = AppInfo.contextPath + "/resources/carPlateImages/" + date + "/" + socketClient.getSocket().getInetAddress().getHostAddress() + "/" + fileName;
-            params.put("photoUri", fileUri);
-            params.put("photoFileName", fileName);
-            updateRealChannelConfig(socketClient.getDeviceInfo(),carPlate,CommonUtils.getTimestamp(),fileUri);
-
-            JSONObject json = new JSONObject();
-            params.put("deviceId",socketClient.getDeviceInfo().getDeviceId());
-
-            InOutCarRoadInfo inOutCarRoadInfo = (InOutCarRoadInfo)baseDao.getById(InOutCarRoadInfo.class,socketClient.getDeviceInfo().getOwnCarRoad());
-            JSONObject roadData = new JSONObject();
-            roadData.put("autoPassType",inOutCarRoadInfo.getAutoPassType());
-            roadData.put("carRoadId",inOutCarRoadInfo.getCarRoadId());
-            roadData.put("carRoadName",Base64.encodeToString(inOutCarRoadInfo.getCarRoadName().getBytes()));
-            roadData.put("carRoadType",inOutCarRoadInfo.getCarRoadType());
-            json.put("roadData",roadData);
-            if (CommonUtils.isEmpty(inOutCarRoadInfo.getManageComputerId())){
-                LOGGER.error("手动录入记录失败：车道未绑定岗亭");
+        String isUseParkinglot = "0";
+        String isMultiCarno = "0";
+        if(inOutCarRoadInfo.getCarRoadType().equals("0")){
+            Timestamp inTime = new Timestamp(System.currentTimeMillis());
+            inTime = GetInOutTime(params.getString("Time"));
+            Map<String,String> openGateInfo = clientBizService.IsNeedOpenGate(carPlate,0,inTime,carparkInfo,memberWallet,uartDeviceAddr,0);
+            if (CommonUtils.isEmpty(openGateInfo)){
                 return;
             }
-            PostComputerManage postComputerManage = (PostComputerManage)baseDao.getById(PostComputerManage.class,inOutCarRoadInfo.getManageComputerId());
-
-            CarparkInfo carparkInfo = (CarparkInfo)baseDao.getById(CarparkInfo.class,inOutCarRoadInfo.getOwnCarparkNo());
-            JSONObject carparkData = new JSONObject();
-            carparkData.put("availableCarSpace",carparkInfo.getAvailableCarSpace());
-            carparkData.put("carparkId",carparkInfo.getCarparkId());
-            carparkData.put("carparkName",Base64.encodeToString(carparkInfo.getCarparkName().getBytes()));
-            carparkData.put("closeType",carparkInfo.getCloseType());
-            carparkData.put("criticalValue",carparkInfo.getCriticalValue());
-            carparkData.put("ownCarparkNo",carparkInfo.getOwnCarparkNo());
-            carparkData.put("passTimeWhenBig",carparkInfo.getPassTimeWhenBig());
-            carparkData.put("totalCarSpace",carparkInfo.getTotalCarSpace());
-            carparkData.put("isClose",carparkInfo.getIsClose());
-            carparkData.put("ifIncludeCaculate",carparkInfo.getIfIncludeCaculate());
-            carparkData.put("isTestRunning",carparkInfo.getIsTestRunning());
-            carparkData.put("isOverdueAutoOpen",carparkInfo.getIsOverdueAutoOpen());
-            json.put("carparkData",carparkData);
-            String oldCarno = "";
-            if ("1".equals(inOutCarRoadInfo.getIsAutoMatchCarNo())){
-                if (!IsWhiteListCarno(carPlate,carparkInfo.getCarparkId())){
-                    String correctionCarno = RedressCarno(carPlate,"0",inOutCarRoadInfo.getIsAutoMatchCarNo(),
-                            String.valueOf(inOutCarRoadInfo.getAutoMatchLeastBite()),inOutCarRoadInfo.getAutoMatchCarNoPos(),
-                            carparkInfo.getCarparkId(),inOutCarRoadInfo.getWhiteIntelligentCorrection());
-                    if (!correctionCarno.equals(carPlate)){
-                        oldCarno = carPlate;
-                        carPlate = correctionCarno;
-                    }
+            MemberKind memberKind = new MemberKind();
+            if(!CommonUtils.isEmpty(memberWallet)){
+                json.put("isMember","true");
+                isUseParkinglot = openGateInfo.get("isUseParkinglot").toString();
+                json.put("isUseParkinglot",isUseParkinglot);
+                isMultiCarno = openGateInfo.get("isMultiCarno").toString();
+                String memberKindId;
+                if(StringUtils.isBlank(memberWallet.getMenberTypeId())){
+                    memberKindId = "";
+                }else{
+                    memberKindId = memberWallet.getMenberTypeId();
                 }
-            }
-            if (!CommonUtils.isEmpty(inOutCarRoadInfo.getIntelligentCorrection())){
-                String correctionCarno = clientBizService.CarnoIntelligentCorrect(inOutCarRoadInfo.getIntelligentCorrection(),carPlate);
-                oldCarno = carPlate;
-                carPlate = correctionCarno;
-            }
-            params.put("CarPlate",Base64.encodeToString(carPlate.getBytes()));
-            json.put("deviceData",params);
-
-
-            String hql = "from DeviceInfo where deviceType = ? and parentDeviceId = ? AND useMark >= 0 ";
-            String uartDeviceAddr = "1";            //默认是全部开闸
-            DeviceInfo childDevice = (DeviceInfo)baseDao.getUnique(hql,"2",socketClient.getDeviceInfo().getDeviceId());
-            if(!CommonUtils.isEmpty(childDevice)){
-                JSONObject openGateData = new JSONObject();
-                uartDeviceAddr = childDevice.getUartDeviceAddr();
-                openGateData.put("uartDeviceAddr",uartDeviceAddr);
-                json.put("openGateData",openGateData);
-            }
-            //根据IPC的ID和车道ID获取LED信息
-            String ledId = "";
-            String ledType = "";
-            hql = "from DeviceInfo where parentDeviceId = ? and deviceType = ? and useMark >= 0";
-            DeviceInfo ledDeviceInfo = (DeviceInfo)baseDao.getUnique(hql,socketClient.getDeviceInfo().getDeviceId() ,"3");
-            if (CommonUtils.isEmpty(ledDeviceInfo)){
-                ledDeviceInfo = (DeviceInfo)baseDao.getUnique(hql,socketClient.getDeviceInfo().getDeviceId() ,"11");
-            }
-            if (!CommonUtils.isEmpty(ledDeviceInfo)){
-                ledId = ledDeviceInfo.getDeviceId();
-                ledType = ledDeviceInfo.getDeviceType();
-            }
-
-            //获取会员及收费类型信息
-            hql = "from MemberWallet where menberNo like ? and carPark = ? AND useMark >= 0";
-            MemberWallet memberWallet = (MemberWallet)baseDao.getUnique(hql,"%" + carPlate + "%",carparkInfo.getCarparkId());
-            if (!CommonUtils.isEmpty(memberWallet)) {
-                Map<String,String> memberWalletSent = BeanUtils.describe(memberWallet);
-                memberWalletSent.put("menberNo",Base64.encodeToString(memberWalletSent.get("menberNo").getBytes()));
-                memberWalletSent.put("driverName",Base64.encodeToString(memberWalletSent.get("driverName").getBytes()));
-                memberWalletSent.put("driverInfo",Base64.encodeToString(memberWalletSent.get("driverInfo").getBytes()));
-                if (CommonUtils.isEmpty(memberWalletSent.get("parkingLotId")))
-                    memberWalletSent.put("parkingLotId","");
-                else
-                    memberWalletSent.put("parkingLotId",Base64.encodeToString(memberWalletSent.get("parkingLotId").getBytes()));
-                json.put("memberWallet", memberWalletSent);
-            }else
-                json.put("memberWallet",Collections.EMPTY_MAP);
-
-            String isUseParkinglot = "0";
-            String isMultiCarno = "0";
-            if(inOutCarRoadInfo.getCarRoadType().equals("0")){
-                Timestamp inTime = new Timestamp(System.currentTimeMillis());
-                inTime = GetInOutTime(params.getString("Time"));
-                Map<String,String> openGateInfo = clientBizService.IsNeedOpenGate(carPlate,0,inTime,carparkInfo,memberWallet,uartDeviceAddr,0);
-                MemberKind memberKind = new MemberKind();
-                if(!CommonUtils.isEmpty(memberWallet)){
-                    json.put("isMember","true");
-                    isUseParkinglot = openGateInfo.get("isUseParkinglot").toString();
-                    json.put("isUseParkinglot",isUseParkinglot);
-                    isMultiCarno = openGateInfo.get("isMultiCarno").toString();
-                    String memberKindId;
-                    if(StringUtils.isBlank(memberWallet.getMenberTypeId())){
-                        memberKindId = "";
-                    }else{
-                        memberKindId = memberWallet.getMenberTypeId();
-                    }
-                    memberKind = (MemberKind)baseDao.getById(MemberKind.class,memberKindId);
-                    if(CommonUtils.isEmpty(memberKind)){
-                        //是会员但是没有套餐ID-预约车或是黑名单
-                        if(openGateInfo.get("isOverdue").equals("1")){       //预约车和黑名单过期
-                            hql = "from MemberKind where carparkInfo = ? AND useType = 1 AND useMark >= 0";
-                            memberKind = (MemberKind)baseDao.getUnique(hql,carparkInfo);
-                            JSONObject memberKindData = new JSONObject();
-                            memberKindData.put("id",memberKind.getId());
-                            memberKindData.put("kindName",Base64.encodeToString(memberKind.getKindName().getBytes()));
-                            if (!StringUtils.isBlank(memberKind.getMemo()))
-                                memberKindData.put("memo",Base64.encodeToString(memberKind.getMemo().getBytes()));
-                            else
-                                memberKindData.put("memo","");
-                            memberKindData.put("packageKind",memberKind.getPackageKind());
-                            memberKindData.put("packageChildKind",memberKind.getPackageChildKind());
-                            memberKindData.put("isDelete",memberKind.getIsDelete());
-                            memberKindData.put("isStatistic",memberKind.getIsStatistic());
-                            memberKindData.put("voicePath",memberKind.getVoicePath());
-                            memberKindData.put("showColor",memberKind.getShowColor());
-                            memberKindData.put("useType",memberKind.getUseType());
-                            json.put("memberKind",memberKindData);
-                        }else {
-                            json.put("memberKind", Collections.EMPTY_MAP);
-                        }
-                    }else{
-                        if(openGateInfo.get("isOverdue").equals("1")|| (openGateInfo.get("isUseWallet").equals("0"))){  //过期或是未使用套餐,使用内部车临时收费
-                            hql = "from MemberKind where carparkInfo = ? AND useType = 1 AND useMark >= 0";
-                            memberKind = (MemberKind)baseDao.getUnique(hql,carparkInfo);
-                        }
+                memberKind = (MemberKind)baseDao.getById(MemberKind.class,memberKindId);
+                if(CommonUtils.isEmpty(memberKind)){
+                    //是会员但是没有套餐ID-预约车或是黑名单
+                    if(openGateInfo.get("isOverdue").equals("1")){       //预约车和黑名单过期
+                        hql = "from MemberKind where carparkInfo = ? AND useType = 1 AND useMark >= 0";
+                        memberKind = (MemberKind)baseDao.getUnique(hql,carparkInfo);
                         JSONObject memberKindData = new JSONObject();
                         memberKindData.put("id",memberKind.getId());
                         memberKindData.put("kindName",Base64.encodeToString(memberKind.getKindName().getBytes()));
@@ -512,54 +491,92 @@ public class DeviceBizServiceImpl implements DeviceBizService {
                         memberKindData.put("showColor",memberKind.getShowColor());
                         memberKindData.put("useType",memberKind.getUseType());
                         json.put("memberKind",memberKindData);
+                    }else {
+                        json.put("memberKind", Collections.EMPTY_MAP);
                     }
                 }else{
-                    json.put("memberKind",Collections.EMPTY_MAP);
-                    json.put("isMember","false");
-                    json.put("isUseParkinglot","0");
-                    hql = "from MemberKind where carparkInfo = ? AND useType = 0 AND useMark >= 0";
-                    memberKind = (MemberKind)baseDao.getUnique(hql,carparkInfo);
-                    if(CommonUtils.isEmpty(memberKind)){
-                        json.put("memberKind", Collections.EMPTY_MAP);
-                    }else{
-                        JSONObject memberKindData = new JSONObject();
-                        memberKindData.put("id",memberKind.getId());
-                        memberKindData.put("kindName",Base64.encodeToString(memberKind.getKindName().getBytes()));
-                        if (!StringUtils.isBlank(memberKind.getMemo()))
-                            memberKindData.put("memo",Base64.encodeToString(memberKind.getMemo().getBytes()));
-                        else
-                            memberKindData.put("memo","");
-                        memberKindData.put("packageKind",memberKind.getPackageKind());
-                        memberKindData.put("packageChildKind",memberKind.getPackageChildKind());
-                        memberKindData.put("isDelete",memberKind.getIsDelete());
-                        memberKindData.put("isStatistic",memberKind.getIsStatistic());
-                        memberKindData.put("voicePath",memberKind.getVoicePath());
-                        memberKindData.put("showColor",memberKind.getShowColor());
-                        memberKindData.put("useType",memberKind.getUseType());
-                        json.put("memberKind",memberKindData);
+                    if(openGateInfo.get("isOverdue").equals("1")|| (openGateInfo.get("isUseWallet").equals("0"))){  //过期或是未使用套餐,使用内部车临时收费
+                        hql = "from MemberKind where carparkInfo = ? AND useType = 1 AND useMark >= 0";
+                        memberKind = (MemberKind)baseDao.getUnique(hql,carparkInfo);
                     }
+                    JSONObject memberKindData = new JSONObject();
+                    memberKindData.put("id",memberKind.getId());
+                    memberKindData.put("kindName",Base64.encodeToString(memberKind.getKindName().getBytes()));
+                    if (!StringUtils.isBlank(memberKind.getMemo()))
+                        memberKindData.put("memo",Base64.encodeToString(memberKind.getMemo().getBytes()));
+                    else
+                        memberKindData.put("memo","");
+                    memberKindData.put("packageKind",memberKind.getPackageKind());
+                    memberKindData.put("packageChildKind",memberKind.getPackageChildKind());
+                    memberKindData.put("isDelete",memberKind.getIsDelete());
+                    memberKindData.put("isStatistic",memberKind.getIsStatistic());
+                    memberKindData.put("voicePath",memberKind.getVoicePath());
+                    memberKindData.put("showColor",memberKind.getShowColor());
+                    memberKindData.put("useType",memberKind.getUseType());
+                    json.put("memberKind",memberKindData);
                 }
-                json.put("isMultiCarno",isMultiCarno);
-                json.put("openGateMode",Integer.valueOf(openGateInfo.get("isNeedOpenGate")));
+            }else{
+                json.put("memberKind",Collections.EMPTY_MAP);
+                json.put("isMember","false");
+                json.put("isUseParkinglot","0");
+                hql = "from MemberKind where carparkInfo = ? AND useType = 0 AND useMark >= 0";
+                memberKind = (MemberKind)baseDao.getUnique(hql,carparkInfo);
+                if(CommonUtils.isEmpty(memberKind)){
+                    json.put("memberKind", Collections.EMPTY_MAP);
+                }else{
+                    JSONObject memberKindData = new JSONObject();
+                    memberKindData.put("id",memberKind.getId());
+                    memberKindData.put("kindName",Base64.encodeToString(memberKind.getKindName().getBytes()));
+                    if (!StringUtils.isBlank(memberKind.getMemo()))
+                        memberKindData.put("memo",Base64.encodeToString(memberKind.getMemo().getBytes()));
+                    else
+                        memberKindData.put("memo","");
+                    memberKindData.put("packageKind",memberKind.getPackageKind());
+                    memberKindData.put("packageChildKind",memberKind.getPackageChildKind());
+                    memberKindData.put("isDelete",memberKind.getIsDelete());
+                    memberKindData.put("isStatistic",memberKind.getIsStatistic());
+                    memberKindData.put("voicePath",memberKind.getVoicePath());
+                    memberKindData.put("showColor",memberKind.getShowColor());
+                    memberKindData.put("useType",memberKind.getUseType());
+                    json.put("memberKind",memberKindData);
+                }
+            }
+            json.put("isMultiCarno",isMultiCarno);
+            json.put("openGateMode",Integer.valueOf(openGateInfo.get("isNeedOpenGate")));
 
-                if (openGateInfo.get("isNeedOpenGate").equals("1")) {
-                    if (!CommonUtils.isEmpty(memberWallet)) {
-                        if (uartDeviceAddr.equals("1") && (!StringUtils.isBlank(memberWallet.getSynchronizeIpcList()))){
-                            //不用开闸
-                        }else{
-                            if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
-                                LOGGER.info(carPlate + "在" +  inOutCarRoadInfo.getCarRoadName() + "开闸入场");
-                            }
-                            deviceManageUtils.openRoadGate(socketClient.getDeviceInfo().getDeviceIp(), Integer.parseInt(socketClient.getDeviceInfo().getDevicePort()),
-                                    socketClient.getDeviceInfo().getDeviceUsername(), socketClient.getDeviceInfo().getDevicePwd());
-                        }
-                    }else {
+            if (openGateInfo.get("isNeedOpenGate").equals("1")) {
+                if (!CommonUtils.isEmpty(memberWallet)) {
+                    if (uartDeviceAddr.equals("1") && (!StringUtils.isBlank(memberWallet.getSynchronizeIpcList()))){
+                        //不用开闸
+                    }else{
                         if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
-                            LOGGER.info(carPlate + "在" +  inOutCarRoadInfo.getCarRoadName() + "开闸入场");
+                            LOGGER.error(carPlate + "在" +  inOutCarRoadInfo.getCarRoadName() + "开闸入场");
                         }
                         deviceManageUtils.openRoadGate(socketClient.getDeviceInfo().getDeviceIp(), Integer.parseInt(socketClient.getDeviceInfo().getDevicePort()),
                                 socketClient.getDeviceInfo().getDeviceUsername(), socketClient.getDeviceInfo().getDevicePwd());
                     }
+                }else {
+                    if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
+                        LOGGER.error(carPlate + "在" +  inOutCarRoadInfo.getCarRoadName() + "开闸入场");
+                    }
+                    deviceManageUtils.openRoadGate(socketClient.getDeviceInfo().getDeviceIp(), Integer.parseInt(socketClient.getDeviceInfo().getDevicePort()),
+                            socketClient.getDeviceInfo().getDeviceUsername(), socketClient.getDeviceInfo().getDevicePwd());
+                }
+                JSONObject autoReleaseParams = new JSONObject();
+                autoReleaseParams.put("inOutCarno", carPlate);
+                autoReleaseParams.put("inOuCarnoOld", oldCarno);
+                autoReleaseParams.put("inOutTime", inTime.toString());
+                autoReleaseParams.put("carplateColor", CarPlateColor);
+                autoReleaseParams.put("inOutCameraId", socketClient.getDeviceInfo().getDeviceId());
+                autoReleaseParams.put("inOutPicName",fileUri);
+                autoReleaseParams.put("releaseMode", "0");
+                autoReleaseParams.put("releaseType", "");
+                autoReleaseParams.put("releaseReason", openGateInfo.get("limiReason"));
+                autoReleaseParams.put("isUseParkinglot",isUseParkinglot);
+                autoReleaseParams.put("ledId",ledId);
+                clientBizService.handleAutoRelease(autoReleaseParams, carparkInfo, inOutCarRoadInfo, memberKind, memberWallet);
+            }else {
+                if ("0".equals(postComputerManage.getIsAutoDeal())){
                     JSONObject autoReleaseParams = new JSONObject();
                     autoReleaseParams.put("inOutCarno", carPlate);
                     autoReleaseParams.put("inOuCarnoOld", oldCarno);
@@ -573,99 +590,60 @@ public class DeviceBizServiceImpl implements DeviceBizService {
                     autoReleaseParams.put("isUseParkinglot",isUseParkinglot);
                     autoReleaseParams.put("ledId",ledId);
                     clientBizService.handleAutoRelease(autoReleaseParams, carparkInfo, inOutCarRoadInfo, memberKind, memberWallet);
-                }else {
-                    if ("0".equals(postComputerManage.getIsAutoDeal())){
-                        JSONObject autoReleaseParams = new JSONObject();
-                        autoReleaseParams.put("inOutCarno", carPlate);
-                        autoReleaseParams.put("inOuCarnoOld", oldCarno);
-                        autoReleaseParams.put("inOutTime", inTime.toString());
-                        autoReleaseParams.put("carplateColor", CarPlateColor);
-                        autoReleaseParams.put("inOutCameraId", socketClient.getDeviceInfo().getDeviceId());
-                        autoReleaseParams.put("inOutPicName",fileUri);
-                        autoReleaseParams.put("releaseMode", "0");
-                        autoReleaseParams.put("releaseType", "");
-                        autoReleaseParams.put("releaseReason", openGateInfo.get("limiReason"));
-                        autoReleaseParams.put("isUseParkinglot",isUseParkinglot);
-                        autoReleaseParams.put("ledId",ledId);
-                        clientBizService.handleAutoRelease(autoReleaseParams, carparkInfo, inOutCarRoadInfo, memberKind, memberWallet);
-                        json.put("openGateMode",1);
-                    }
+                    json.put("openGateMode",1);
                 }
+            }
 
-                //LED显示播报
-                if (!StringUtils.isBlank(ledId)) {
-                    JSONObject playParams = new JSONObject();
-                    Map<String,Object> ledMap = GetLedPlaySence(ledId, 0, carparkInfo.getLedMemberCriticalValue(),
-                            Integer.valueOf(openGateInfo.get("isNeedOpenGate")), inTime, memberWallet, "");
-                    LedDisplayConfig ledDisplayConfig = (LedDisplayConfig) ledMap.get("ledDisplayConfig");
-                    String memberLeft = (String) ledMap.get("memberLeft");
+            //LED显示播报
+            if (!StringUtils.isBlank(ledId)) {
+                JSONObject playParams = new JSONObject();
+                Map<String,Object> ledMap = GetLedPlaySence(ledId, 0, carparkInfo.getLedMemberCriticalValue(),
+                        Integer.valueOf(openGateInfo.get("isNeedOpenGate")), inTime, memberWallet, "");
+                LedDisplayConfig ledDisplayConfig = (LedDisplayConfig) ledMap.get("ledDisplayConfig");
+                String memberLeft = (String) ledMap.get("memberLeft");
 
-                    playParams.put("carPlate", carPlate);
-                    playParams.put("carparkName", carparkInfo.getCarparkName());
-                    playParams.put("availableCarSpace", carparkInfo.getAvailableCarSpace());
-                    playParams.put("inOutTime", inTime.toString());
-                    playParams.put("parkingLength", "0");
-                    playParams.put("kindName", CommonUtils.isEmpty(memberKind) ? "" : memberKind.getKindName());
-                    playParams.put("chargeAmount", "0");
-                    playParams.put("limitReason", openGateInfo.get("limiReason"));
-                    playParams.put("memberLeft", memberLeft);
-                    playParams.put("isMultiCarno",isMultiCarno);
-                    //playParams.put("driverName",driverName);
-                    PlayLedInfo(socketClient.getDeviceInfo().getDeviceId(), 0, playParams, ledDisplayConfig,ledType,ledId);
+                playParams.put("carPlate", carPlate);
+                playParams.put("carparkName", carparkInfo.getCarparkName());
+                playParams.put("availableCarSpace", carparkInfo.getAvailableCarSpace());
+                playParams.put("inOutTime", inTime.toString());
+                playParams.put("parkingLength", "0");
+                playParams.put("kindName", CommonUtils.isEmpty(memberKind) ? "" : memberKind.getKindName());
+                playParams.put("chargeAmount", "0");
+                playParams.put("limitReason", openGateInfo.get("limiReason"));
+                playParams.put("memberLeft", memberLeft);
+                playParams.put("isMultiCarno",isMultiCarno);
+                //playParams.put("driverName",driverName);
+                PlayLedInfo(socketClient.getDeviceInfo().getDeviceId(), 0, playParams, ledDisplayConfig,ledType,ledId);
+            }
+
+        }else{
+            //组织出场数据
+            Double chargeAmount = 0D;  //应收金额
+            Double chargeAmountForMember = 0D;  //会员收费类型为临时车的时候
+            Timestamp outTime = GetInOutTime(params.getString("Time"));
+
+            //获取userType
+            String useType = "0";//默认为外部临时收费
+            MemberKind memberKind;
+            Map<String,String> memberUseInfo = clientBizService.IsNeedOpenGate(carPlate,1,outTime,carparkInfo,memberWallet,uartDeviceAddr,chargeAmount);
+            if(!CommonUtils.isEmpty(memberWallet)){
+                json.put("isMember","true");
+                isUseParkinglot = memberUseInfo.get("isUseParkinglot").toString();
+                json.put("isUseParkinglot",isUseParkinglot);
+                isMultiCarno = memberUseInfo.get("isMultiCarno").toString();
+                String memberKindId;
+                if(StringUtils.isBlank(memberWallet.getMenberTypeId())){
+                    memberKindId = "";
+                }else{
+                    memberKindId = memberWallet.getMenberTypeId();
                 }
-
-            }else{
-                //组织出场数据
-                Double chargeAmount = 0D;  //应收金额
-                Double chargeAmountForMember = 0D;  //会员收费类型为临时车的时候
-                Timestamp outTime = GetInOutTime(params.getString("Time"));
-
-                //获取userType
-                String useType = "0";//默认为外部临时收费
-                MemberKind memberKind;
-                Map<String,String> memberUseInfo = clientBizService.IsNeedOpenGate(carPlate,1,outTime,carparkInfo,memberWallet,uartDeviceAddr,chargeAmount);
-                if(!CommonUtils.isEmpty(memberWallet)){
-                    json.put("isMember","true");
-                    isUseParkinglot = memberUseInfo.get("isUseParkinglot").toString();
-                    json.put("isUseParkinglot",isUseParkinglot);
-                    isMultiCarno = memberUseInfo.get("isMultiCarno").toString();
-                    String memberKindId;
-                    if(StringUtils.isBlank(memberWallet.getMenberTypeId())){
-                        memberKindId = "";
-                    }else{
-                        memberKindId = memberWallet.getMenberTypeId();
-                    }
-                    memberKind = (MemberKind)baseDao.getById(MemberKind.class,memberKindId);
-                    if(CommonUtils.isEmpty(memberKind)){
-                        //是会员但是没有套餐ID-预约车或是黑名单
-                        useType = "1";
-                        if(memberUseInfo.get("isOverdue").equals("1")){       //预约车和黑名单过期
-                            hql = "from MemberKind where carparkInfo = ? AND useType = 1 AND useMark >= 0";
-                            memberKind = (MemberKind)baseDao.getUnique(hql,carparkInfo);
-                            JSONObject memberKindData = new JSONObject();
-                            memberKindData.put("id",memberKind.getId());
-                            memberKindData.put("kindName",Base64.encodeToString(memberKind.getKindName().getBytes()));
-                            if (!StringUtils.isBlank(memberKind.getMemo()))
-                                memberKindData.put("memo",Base64.encodeToString(memberKind.getMemo().getBytes()));
-                            else
-                                memberKindData.put("memo","");
-                            memberKindData.put("packageKind",memberKind.getPackageKind());
-                            memberKindData.put("packageChildKind",memberKind.getPackageChildKind());
-                            memberKindData.put("isDelete",memberKind.getIsDelete());
-                            memberKindData.put("isStatistic",memberKind.getIsStatistic());
-                            memberKindData.put("voicePath",memberKind.getVoicePath());
-                            memberKindData.put("showColor",memberKind.getShowColor());
-                            memberKindData.put("useType",memberKind.getUseType());
-                            json.put("memberKind",memberKindData);
-                        }else {
-                            json.put("memberKind", Collections.EMPTY_MAP);
-                        }
-                    }else{
-                        if(memberUseInfo.get("isOverdue").equals("1") || (memberUseInfo.get("isUseWallet").equals("0"))){ //过期或是未使用套餐,使用内部车临时收费
-                            useType = "1";
-                            hql = "from MemberKind where carparkInfo = ? AND useType = 1 AND useMark >= 0";
-                            memberKind = (MemberKind)baseDao.getUnique(hql,carparkInfo);
-                        }
+                memberKind = (MemberKind)baseDao.getById(MemberKind.class,memberKindId);
+                if(CommonUtils.isEmpty(memberKind)){
+                    //是会员但是没有套餐ID-预约车或是黑名单
+                    useType = "1";
+                    if(memberUseInfo.get("isOverdue").equals("1")){       //预约车和黑名单过期
+                        hql = "from MemberKind where carparkInfo = ? AND useType = 1 AND useMark >= 0";
+                        memberKind = (MemberKind)baseDao.getUnique(hql,carparkInfo);
                         JSONObject memberKindData = new JSONObject();
                         memberKindData.put("id",memberKind.getId());
                         memberKindData.put("kindName",Base64.encodeToString(memberKind.getKindName().getBytes()));
@@ -681,189 +659,232 @@ public class DeviceBizServiceImpl implements DeviceBizService {
                         memberKindData.put("showColor",memberKind.getShowColor());
                         memberKindData.put("useType",memberKind.getUseType());
                         json.put("memberKind",memberKindData);
+                    }else {
+                        json.put("memberKind", Collections.EMPTY_MAP);
                     }
                 }else{
-                    json.put("memberKind",Collections.EMPTY_MAP);
-                    json.put("isMember","false");
-                    json.put("isUseParkinglot","0");
-                    hql = "from MemberKind where carparkInfo = ? AND useType = 0 AND useMark >= 0";
-                    useType = "0";
-                    memberKind = (MemberKind)baseDao.getUnique(hql,carparkInfo);
-                    if(CommonUtils.isEmpty(memberKind)){
-                        json.put("memberKind", Collections.EMPTY_MAP);
-                    }else{
-                        JSONObject memberKindData = new JSONObject();
-                        memberKindData.put("id",memberKind.getId());
-                        memberKindData.put("kindName",Base64.encodeToString(memberKind.getKindName().getBytes()));
-                        if (!StringUtils.isBlank(memberKind.getMemo()))
-                            memberKindData.put("memo",Base64.encodeToString(memberKind.getMemo().getBytes()));
-                        else
-                            memberKindData.put("memo","");
-                        memberKindData.put("packageKind",memberKind.getPackageKind());
-                        memberKindData.put("packageChildKind",memberKind.getPackageChildKind());
-                        memberKindData.put("isDelete",memberKind.getIsDelete());
-                        memberKindData.put("isStatistic",memberKind.getIsStatistic());
-                        memberKindData.put("voicePath",memberKind.getVoicePath());
-                        memberKindData.put("showColor",memberKind.getShowColor());
-                        memberKindData.put("useType",memberKind.getUseType());
-                        json.put("memberKind",memberKindData);
+                    if(memberUseInfo.get("isOverdue").equals("1") || (memberUseInfo.get("isUseWallet").equals("0"))){ //过期或是未使用套餐,使用内部车临时收费
+                        useType = "1";
+                        hql = "from MemberKind where carparkInfo = ? AND useType = 1 AND useMark >= 0";
+                        memberKind = (MemberKind)baseDao.getUnique(hql,carparkInfo);
                     }
+                    JSONObject memberKindData = new JSONObject();
+                    memberKindData.put("id",memberKind.getId());
+                    memberKindData.put("kindName",Base64.encodeToString(memberKind.getKindName().getBytes()));
+                    if (!StringUtils.isBlank(memberKind.getMemo()))
+                        memberKindData.put("memo",Base64.encodeToString(memberKind.getMemo().getBytes()));
+                    else
+                        memberKindData.put("memo","");
+                    memberKindData.put("packageKind",memberKind.getPackageKind());
+                    memberKindData.put("packageChildKind",memberKind.getPackageChildKind());
+                    memberKindData.put("isDelete",memberKind.getIsDelete());
+                    memberKindData.put("isStatistic",memberKind.getIsStatistic());
+                    memberKindData.put("voicePath",memberKind.getVoicePath());
+                    memberKindData.put("showColor",memberKind.getShowColor());
+                    memberKindData.put("useType",memberKind.getUseType());
+                    json.put("memberKind",memberKindData);
                 }
-                json.put("isMultiCarno",isMultiCarno);
+            }else{
+                json.put("memberKind",Collections.EMPTY_MAP);
+                json.put("isMember","false");
+                json.put("isUseParkinglot","0");
+                hql = "from MemberKind where carparkInfo = ? AND useType = 0 AND useMark >= 0";
+                useType = "0";
+                memberKind = (MemberKind)baseDao.getUnique(hql,carparkInfo);
+                if(CommonUtils.isEmpty(memberKind)){
+                    json.put("memberKind", Collections.EMPTY_MAP);
+                }else{
+                    JSONObject memberKindData = new JSONObject();
+                    memberKindData.put("id",memberKind.getId());
+                    memberKindData.put("kindName",Base64.encodeToString(memberKind.getKindName().getBytes()));
+                    if (!StringUtils.isBlank(memberKind.getMemo()))
+                        memberKindData.put("memo",Base64.encodeToString(memberKind.getMemo().getBytes()));
+                    else
+                        memberKindData.put("memo","");
+                    memberKindData.put("packageKind",memberKind.getPackageKind());
+                    memberKindData.put("packageChildKind",memberKind.getPackageChildKind());
+                    memberKindData.put("isDelete",memberKind.getIsDelete());
+                    memberKindData.put("isStatistic",memberKind.getIsStatistic());
+                    memberKindData.put("voicePath",memberKind.getVoicePath());
+                    memberKindData.put("showColor",memberKind.getShowColor());
+                    memberKindData.put("useType",memberKind.getUseType());
+                    json.put("memberKind",memberKindData);
+                }
+            }
+            json.put("isMultiCarno",isMultiCarno);
 
-                //匹配的入场信息
-                OrderInoutRecord matchInInfo = clientBizService.GetMatchInfo(carPlate,carparkInfo.getCarparkId(),outTime);
-                Timestamp inTime = new Timestamp(System.currentTimeMillis());
-                Timestamp chargeBeginTime = new Timestamp(System.currentTimeMillis()); //计费时间
-                String parkingLen = "";
-                Long stayTime = 0L;
-                if(!CommonUtils.isEmpty(matchInInfo)){
-                    json.put("isMatch","true");
-                    JSONObject matchData = new JSONObject();
-                    matchData.put("matchCarno",Base64.encodeToString(matchInInfo.getCarNo().getBytes()));
-                    matchData.put("matchRoadId",matchInInfo.getInCarRoadId());
-                    matchData.put("matchRoadName",Base64.encodeToString(matchInInfo.getInCarRoadName().getBytes()));
-                    matchData.put("matchInTime",CommonUtils.formatTimeStamp("yyyy-MM-dd HH:mm:ss",matchInInfo.getInTime()));
+            //匹配的入场信息
+            OrderInoutRecord matchInInfo = clientBizService.GetMatchInfo(carPlate,carparkInfo.getCarparkId(),outTime);
+            Timestamp inTime = new Timestamp(System.currentTimeMillis());
+            Timestamp chargeBeginTime = new Timestamp(System.currentTimeMillis()); //计费时间
+            String parkingLen = "";
+            Long stayTime = 0L;
+            if(!CommonUtils.isEmpty(matchInInfo)){
+                json.put("isMatch","true");
+                JSONObject matchData = new JSONObject();
+                matchData.put("matchCarno",Base64.encodeToString(matchInInfo.getCarNo().getBytes()));
+                matchData.put("matchRoadId",matchInInfo.getInCarRoadId());
+                matchData.put("matchRoadName",Base64.encodeToString(matchInInfo.getInCarRoadName().getBytes()));
+                matchData.put("matchInTime",CommonUtils.formatTimeStamp("yyyy-MM-dd HH:mm:ss",matchInInfo.getInTime()));
 
-                    if (!CommonUtils.isEmpty(memberWallet)) {
-                        if (memberUseInfo.get("isOverdue").equals("1")) {//出场时白名单过期
-                            if (memberWallet.getPackKindId().equals(0) || memberWallet.getPackKindId().equals(-3)) {
-                                chargeBeginTime = memberWallet.getEffectiveEndTime().getTime() >= matchInInfo.getInTime().getTime() ? memberWallet.getEffectiveEndTime() : matchInInfo.getInTime();
-                            } else
-                                chargeBeginTime = matchInInfo.getInTime();
+                if (!CommonUtils.isEmpty(memberWallet)) {
+                    if (memberUseInfo.get("isOverdue").equals("1")) {//出场时白名单过期
+                        if (memberWallet.getPackKindId().equals(0) || memberWallet.getPackKindId().equals(-3)) {
+                            chargeBeginTime = memberWallet.getEffectiveEndTime().getTime() >= matchInInfo.getInTime().getTime() ? memberWallet.getEffectiveEndTime() : matchInInfo.getInTime();
                         } else
                             chargeBeginTime = matchInInfo.getInTime();
-                    }else
+                    } else
                         chargeBeginTime = matchInInfo.getInTime();
+                }else
+                    chargeBeginTime = matchInInfo.getInTime();
 
-                    if (!CommonUtils.isEmpty(matchInInfo.getInChargeTime())){
-                        chargeBeginTime = matchInInfo.getInChargeTime().getTime() >= chargeBeginTime.getTime() ? matchInInfo.getInChargeTime() : chargeBeginTime;
-                    }
-
-                    inTime = matchInInfo.getInTime();
-                    stayTime = (outTime.getTime() - inTime.getTime()) / 1000;
-                    int parkingHour = (int)(stayTime/3600);
-                    int parkingMinute = (int)((stayTime-parkingHour*3600)/60);
-                    parkingLen = "停车" + String.valueOf(parkingHour) + "时" + String.valueOf(parkingMinute) + "分";
-                    matchData.put("stayTime",stayTime);
-                    matchData.put("matchInPic",matchInInfo.getInPictureName());
-                    json.put("matchData",matchData);
-                }else{
-                    parkingLen = "停车时长未知";
-                    json.put("isMatch", "false");
-                    json.put("matchData", Collections.EMPTY_MAP);
-                    chargeBeginTime = new Timestamp(outTime.getTime() - 60 * 60 * 1000);
+                if (!CommonUtils.isEmpty(matchInInfo.getInChargeTime())){
+                    chargeBeginTime = matchInInfo.getInChargeTime().getTime() >= chargeBeginTime.getTime() ? matchInInfo.getInChargeTime() : chargeBeginTime;
                 }
 
-                //提前缴费金额
-                Double chargePreAmount = 0D;
-                BigDecimal accountSum = new BigDecimal("0.00");
-                Timestamp prechargeTime = outTime;
-                //3、核算流水订单缴纳费用
-                if (!CommonUtils.isEmpty(matchInInfo)) {
-                    String accountHql = "from OrderTransaction where orderId = ? and payStatus = ? order by addTime desc";
-                    List<OrderTransaction> orderTransactionList = (List<OrderTransaction>)baseDao.queryForList(accountHql,matchInInfo.getChargeInfoId(), payStatusEnum.HAS_PAID);
-                    if (orderTransactionList.size() > 0) {
-                        prechargeTime = orderTransactionList.get(0).getAddTime();
-                        //流水表收费总金额
-                        for (OrderTransaction orderTransaction : orderTransactionList){
-                            accountSum = accountSum.add(orderTransaction.getTotalFee());
-                        }
+                inTime = matchInInfo.getInTime();
+                stayTime = (outTime.getTime() - inTime.getTime()) / 1000;
+                int parkingHour = (int)(stayTime/3600);
+                int parkingMinute = (int)((stayTime-parkingHour*3600)/60);
+                parkingLen = "停车" + String.valueOf(parkingHour) + "时" + String.valueOf(parkingMinute) + "分";
+                matchData.put("stayTime",stayTime);
+                matchData.put("matchInPic",matchInInfo.getInPictureName());
+                json.put("matchData",matchData);
+            }else{
+                parkingLen = "停车时长未知";
+                json.put("isMatch", "false");
+                json.put("matchData", Collections.EMPTY_MAP);
+                chargeBeginTime = new Timestamp(outTime.getTime() - 60 * 60 * 1000);
+            }
+
+            //提前缴费金额
+            Double chargePreAmount = 0D;
+            BigDecimal accountSum = new BigDecimal("0.00");
+            Timestamp prechargeTime = outTime;
+            //3、核算流水订单缴纳费用
+            if (!CommonUtils.isEmpty(matchInInfo)) {
+                String accountHql = "from OrderTransaction where orderId = ? and payStatus = ? order by addTime desc";
+                List<OrderTransaction> orderTransactionList = (List<OrderTransaction>)baseDao.queryForList(accountHql,matchInInfo.getChargeInfoId(), payStatusEnum.HAS_PAID);
+                if (orderTransactionList.size() > 0) {
+                    prechargeTime = orderTransactionList.get(0).getAddTime();
+                    //流水表收费总金额
+                    for (OrderTransaction orderTransaction : orderTransactionList){
+                        accountSum = accountSum.add(orderTransaction.getTotalFee());
                     }
-                    //写入提前缴费金额
-                    if(CommonUtils.isEmpty(accountSum)){
-                        accountSum = new BigDecimal("0.00");
-                    }
-                    matchInInfo.setChargePreAmount(accountSum.doubleValue());
-                    chargePreAmount = matchInInfo.getChargePreAmount();
                 }
-
-                boolean isNeedCalculateCharge = false;      //是否结算金额
-                if (chargePreAmount > 0){
-                    isNeedCalculateCharge = outTime.getTime() - prechargeTime.getTime() > Integer.valueOf(carparkInfo.getPassTimeWhenBig()) * 60 * 1000 ? true : false;
-
-                }else {
-                    isNeedCalculateCharge = true;
+                //写入提前缴费金额
+                if(CommonUtils.isEmpty(accountSum)){
+                    accountSum = new BigDecimal("0.00");
                 }
+                matchInInfo.setChargePreAmount(accountSum.doubleValue());
+                chargePreAmount = matchInInfo.getChargePreAmount();
+            }
 
-                try {
-                    //使用未过期的白名单或是未匹配出场且车场试运行的金额为0
-                    boolean isValid = false;
-                    boolean isUseWallet = false;
-                    boolean isOverdue = false;
-                    if (!CommonUtils.isEmpty(memberWallet)){
-                        isValid = memberUseInfo.get("isValid").equals("1") ? true : false;
-                        isUseWallet = memberUseInfo.get("isUseWallet").equals("1") ? true : false;
-                        isOverdue = memberUseInfo.get("isOverdue").equals("1") ? true : false;
-                    }
-                    if((isValid && isUseWallet && (!isOverdue)) || (CommonUtils.isEmpty(matchInInfo) && carparkInfo.getIsTestRunning().equals("1"))) {
-                        if (memberWallet.getPackKindId().equals(2))
-                            chargeAmountForMember = calculateFeeNewService.calculateParkingFeeNew(carPlate, useType, carType,carparkInfo.getCarparkId(), chargeBeginTime, outTime);
-                        chargeAmount = 0D;
-                    }else
-                        chargeAmount = calculateFeeNewService.calculateParkingFeeNew(carPlate, useType, carType,carparkInfo.getCarparkId(), chargeBeginTime, outTime);
-                }catch (Exception e){
+            boolean isNeedCalculateCharge = false;      //是否结算金额
+            if (chargePreAmount > 0){
+                isNeedCalculateCharge = outTime.getTime() - prechargeTime.getTime() > Integer.valueOf(carparkInfo.getPassTimeWhenBig()) * 60 * 1000 ? true : false;
+
+            }else {
+                isNeedCalculateCharge = true;
+            }
+
+            try {
+                //使用未过期的白名单或是未匹配出场且车场试运行的金额为0
+                boolean isValid = false;
+                boolean isUseWallet = false;
+                boolean isOverdue = false;
+                if (!CommonUtils.isEmpty(memberWallet)){
+                    isValid = memberUseInfo.get("isValid").equals("1") ? true : false;
+                    isUseWallet = memberUseInfo.get("isUseWallet").equals("1") ? true : false;
+                    isOverdue = memberUseInfo.get("isOverdue").equals("1") ? true : false;
+                }
+                if((isValid && isUseWallet && (!isOverdue)) || (CommonUtils.isEmpty(matchInInfo) && carparkInfo.getIsTestRunning().equals("1"))) {
+                    if (memberWallet.getPackKindId().equals(2))
+                        chargeAmountForMember = calculateFeeNewService.calculateParkingFeeNew(carPlate, useType, carType,carparkInfo.getCarparkId(), chargeBeginTime, outTime);
                     chargeAmount = 0D;
-                }
+                }else
+                    chargeAmount = calculateFeeNewService.calculateParkingFeeNew(carPlate, useType, carType,carparkInfo.getCarparkId(), chargeBeginTime, outTime);
+            }catch (Exception e){
+                chargeAmount = 0D;
+            }
 
-                //2、获取入场订单信息
-                if (!CommonUtils.isEmpty(matchInInfo)) {
-                    matchInInfo.setChargeReceivableAmount(chargeAmount);
-                    matchInInfo.setUpdateTime(CommonUtils.getTimestamp());
-                    baseDao.update(matchInInfo);
-                }
+            //2、获取入场订单信息
+            if (!CommonUtils.isEmpty(matchInInfo)) {
+                matchInInfo.setChargeReceivableAmount(chargeAmount);
+                matchInInfo.setUpdateTime(CommonUtils.getTimestamp());
+                baseDao.update(matchInInfo);
+            }
 
-                //获取应缴费金额
-                Double chargeActualAmount = 0D;
-                if (isNeedCalculateCharge){
-                    chargeActualAmount = chargeAmount - chargePreAmount;
+            //获取应缴费金额
+            Double chargeActualAmount = 0D;
+            if (isNeedCalculateCharge){
+                chargeActualAmount = chargeAmount - chargePreAmount;
+            }else {
+                chargeAmount = chargePreAmount;
+            }
+
+            chargeActualAmount = chargeActualAmount < 0 ? 0D : chargeActualAmount;
+            Map<String,String> openGateModeInfo = clientBizService.IsNeedOpenGate(carPlate,1,outTime,carparkInfo,memberWallet,
+                    uartDeviceAddr,chargeActualAmount);
+
+            boolean isNoSensePay = false;
+            if (AppInfo.isUseUparkPay.equals("1") && (!CommonUtils.isEmpty(matchInInfo)) && (matchInInfo.getReleaseType().equals(4))){
+                //符合无感支付的车辆，如果金额大于300
+                if (chargeAmount > 300){
+                    //不抬杆，推送账单至智慧停车云平台
+                    String payAmt = (new BigDecimal(chargeAmount).multiply(new BigDecimal("100"))).setScale(0,BigDecimal.ROUND_UP) + "";
+                    newOrderParkService.pushBillToUparkCloud(matchInInfo.getChargeInfoId(),carPlate,carparkInfo.getCarparkId(),carparkInfo.getCarparkName(),payAmt,payAmt
+                            ,inTime.toString(),outTime.toString(),"");
                 }else {
-                    chargeAmount = chargePreAmount;
+                    //抬杆，调用离场通知接口推送消息至智慧停车平台
+                    openGateModeInfo.put("isNeedOpenGate","1");
+                    openGateModeInfo.put("limiReason","");
+                    isNoSensePay = true;
                 }
+            }
 
-                chargeActualAmount = chargeActualAmount < 0 ? 0D : chargeActualAmount;
-                Map<String,String> openGateModeInfo = clientBizService.IsNeedOpenGate(carPlate,1,outTime,carparkInfo,memberWallet,
-                        uartDeviceAddr,chargeActualAmount);
-
-                boolean isNoSensePay = false;
-                if (AppInfo.isUseUparkPay.equals("1") && (!CommonUtils.isEmpty(matchInInfo)) && (matchInInfo.getReleaseType().equals(4))){
-                    //符合无感支付的车辆，如果金额大于300
-                    if (chargeAmount > 300){
-                        //不抬杆，推送账单至智慧停车云平台
-                        String payAmt = (new BigDecimal(chargeAmount).multiply(new BigDecimal("100"))).setScale(0,BigDecimal.ROUND_UP) + "";
-                        newOrderParkService.pushBillToUparkCloud(matchInInfo.getChargeInfoId(),carPlate,carparkInfo.getCarparkId(),carparkInfo.getCarparkName(),payAmt,payAmt
-                        ,inTime.toString(),outTime.toString(),"");
-                    }else {
-                        //抬杆，调用离场通知接口推送消息至智慧停车平台
-                        openGateModeInfo.put("isNeedOpenGate","1");
-                        openGateModeInfo.put("limiReason","");
-                        isNoSensePay = true;
-                    }
-                }
-
-                json.put("openGateMode",Integer.valueOf(openGateModeInfo.get("isNeedOpenGate")));
-                if((accountSum.compareTo(new BigDecimal(chargeAmount.toString())) >= 0) || isNoSensePay){
-                    //场内缴费金额大于或等于应缴费金额，或是使用了无感支付，直接自动放行
-                    if (openGateModeInfo.get("isNeedOpenGate").equals("1")){
-                        //开闸
-                        if (!CommonUtils.isEmpty(memberWallet)) {
-                            if (uartDeviceAddr.equals("1") && (!StringUtils.isBlank(memberWallet.getSynchronizeIpcList()))){
-                                //不用开闸
-                            }else{
-                                if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
-                                    LOGGER.info(carPlate + "在" +  inOutCarRoadInfo.getCarRoadName() + "开闸出场");
-                                }
-                                deviceManageUtils.openRoadGate(socketClient.getDeviceInfo().getDeviceIp(),Integer.parseInt(socketClient.getDeviceInfo().getDevicePort()),
-                                        socketClient.getDeviceInfo().getDeviceUsername(),socketClient.getDeviceInfo().getDevicePwd());
-                            }
-                        }else {
+            json.put("openGateMode",Integer.valueOf(openGateModeInfo.get("isNeedOpenGate")));
+            if((accountSum.compareTo(new BigDecimal(chargeAmount.toString())) >= 0) || isNoSensePay){
+                //场内缴费金额大于或等于应缴费金额，或是使用了无感支付，直接自动放行
+                if (openGateModeInfo.get("isNeedOpenGate").equals("1")){
+                    //开闸
+                    if (!CommonUtils.isEmpty(memberWallet)) {
+                        if (uartDeviceAddr.equals("1") && (!StringUtils.isBlank(memberWallet.getSynchronizeIpcList()))){
+                            //不用开闸
+                        }else{
                             if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
-                                LOGGER.info(carPlate + "在" +  inOutCarRoadInfo.getCarRoadName() + "开闸出场");
+                                LOGGER.error(carPlate + "在" +  inOutCarRoadInfo.getCarRoadName() + "开闸出场");
                             }
                             deviceManageUtils.openRoadGate(socketClient.getDeviceInfo().getDeviceIp(),Integer.parseInt(socketClient.getDeviceInfo().getDevicePort()),
                                     socketClient.getDeviceInfo().getDeviceUsername(),socketClient.getDeviceInfo().getDevicePwd());
                         }
+                    }else {
+                        if (carparkInfo.getCarparkName().equals("海西1号地库") || carparkInfo.getCarparkName().equals("海西2号地库")){
+                            LOGGER.error(carPlate + "在" +  inOutCarRoadInfo.getCarRoadName() + "开闸出场");
+                        }
+                        deviceManageUtils.openRoadGate(socketClient.getDeviceInfo().getDeviceIp(),Integer.parseInt(socketClient.getDeviceInfo().getDevicePort()),
+                                socketClient.getDeviceInfo().getDeviceUsername(),socketClient.getDeviceInfo().getDevicePwd());
+                    }
 
+                    JSONObject autoReleaseParams = new JSONObject();
+                    autoReleaseParams.put("inOutCarno", carPlate);
+                    autoReleaseParams.put("inOuCarnoOld", oldCarno);
+                    autoReleaseParams.put("inOutTime", outTime.toString());
+                    autoReleaseParams.put("carplateColor", CarPlateColor);
+                    autoReleaseParams.put("inOutCameraId", socketClient.getDeviceInfo().getDeviceId());
+                    autoReleaseParams.put("inOutPicName",fileUri);
+                    autoReleaseParams.put("releaseMode", "0");
+                    autoReleaseParams.put("chargeAmount", chargeAmount.toString());
+                    autoReleaseParams.put("chargeAmountForMember", chargeAmountForMember.toString());
+                    autoReleaseParams.put("releaseType", "3");
+                    autoReleaseParams.put("releaseReason", openGateModeInfo.get("limiReason"));
+                    autoReleaseParams.put("chargeActualAmount", chargeActualAmount.toString());
+                    autoReleaseParams.put("stayTime",stayTime);
+                    autoReleaseParams.put("isUseParkinglot",isUseParkinglot);
+                    autoReleaseParams.put("ledId",ledId);
+                    clientBizService.handleAutoRelease(autoReleaseParams, carparkInfo, inOutCarRoadInfo, memberKind, memberWallet);
+                }else {
+                    if ("0".equals(postComputerManage.getIsAutoDeal())){
                         JSONObject autoReleaseParams = new JSONObject();
                         autoReleaseParams.put("inOutCarno", carPlate);
                         autoReleaseParams.put("inOuCarnoOld", oldCarno);
@@ -881,69 +902,47 @@ public class DeviceBizServiceImpl implements DeviceBizService {
                         autoReleaseParams.put("isUseParkinglot",isUseParkinglot);
                         autoReleaseParams.put("ledId",ledId);
                         clientBizService.handleAutoRelease(autoReleaseParams, carparkInfo, inOutCarRoadInfo, memberKind, memberWallet);
-                    }else {
-                        if ("0".equals(postComputerManage.getIsAutoDeal())){
-                            JSONObject autoReleaseParams = new JSONObject();
-                            autoReleaseParams.put("inOutCarno", carPlate);
-                            autoReleaseParams.put("inOuCarnoOld", oldCarno);
-                            autoReleaseParams.put("inOutTime", outTime.toString());
-                            autoReleaseParams.put("carplateColor", CarPlateColor);
-                            autoReleaseParams.put("inOutCameraId", socketClient.getDeviceInfo().getDeviceId());
-                            autoReleaseParams.put("inOutPicName",fileUri);
-                            autoReleaseParams.put("releaseMode", "0");
-                            autoReleaseParams.put("chargeAmount", chargeAmount.toString());
-                            autoReleaseParams.put("chargeAmountForMember", chargeAmountForMember.toString());
-                            autoReleaseParams.put("releaseType", "3");
-                            autoReleaseParams.put("releaseReason", openGateModeInfo.get("limiReason"));
-                            autoReleaseParams.put("chargeActualAmount", chargeActualAmount.toString());
-                            autoReleaseParams.put("stayTime",stayTime);
-                            autoReleaseParams.put("isUseParkinglot",isUseParkinglot);
-                            autoReleaseParams.put("ledId",ledId);
-                            clientBizService.handleAutoRelease(autoReleaseParams, carparkInfo, inOutCarRoadInfo, memberKind, memberWallet);
-                            json.put("openGateMode",1);
-                        }
+                        json.put("openGateMode",1);
                     }
                 }
-                json.put("chargeAmount",chargeAmount);
-                json.put("chargePreAmount",chargePreAmount);
+            }
+            json.put("chargeAmount",chargeAmount);
+            json.put("chargePreAmount",chargePreAmount);
 
-                //如果存在LED显示屏
-                if (!StringUtils.isBlank(ledId)){
-                    JSONObject playParams = new JSONObject();
-                    Map<String,Object> ledMap = GetLedPlaySence(ledId,1,carparkInfo.getLedMemberCriticalValue(),
-                            Integer.valueOf(openGateModeInfo.get("isNeedOpenGate")),outTime,memberWallet,"");
-                    LedDisplayConfig ledDisplayConfig = (LedDisplayConfig) ledMap.get("ledDisplayConfig");
-                    String memberLeft = (String) ledMap.get("memberLeft");
+            //如果存在LED显示屏
+            if (!StringUtils.isBlank(ledId)){
+                JSONObject playParams = new JSONObject();
+                Map<String,Object> ledMap = GetLedPlaySence(ledId,1,carparkInfo.getLedMemberCriticalValue(),
+                        Integer.valueOf(openGateModeInfo.get("isNeedOpenGate")),outTime,memberWallet,"");
+                LedDisplayConfig ledDisplayConfig = (LedDisplayConfig) ledMap.get("ledDisplayConfig");
+                String memberLeft = (String) ledMap.get("memberLeft");
 
-                    playParams.put("carPlate",carPlate);
-                    playParams.put("carparkName",carparkInfo.getCarparkName());
-                    playParams.put("availableCarSpace",carparkInfo.getAvailableCarSpace());
-                    playParams.put("inOutTime",outTime.toString());
-                    playParams.put("parkingLength",parkingLen);
-                    playParams.put("kindName",CommonUtils.isEmpty(memberKind) ? "" : memberKind.getKindName());
-                    playParams.put("chargeAmount",String.valueOf(chargeAmount));
-                    playParams.put("limitReason",openGateModeInfo.get("limiReason"));
-                    playParams.put("memberLeft",memberLeft);
-                    playParams.put("isMultiCarno",isMultiCarno);
-                    //playParams.put("driverName",driverName);
-                    PlayLedInfo(socketClient.getDeviceInfo().getDeviceId(),1,playParams,ledDisplayConfig,ledType,ledId);
-                }
-
+                playParams.put("carPlate",carPlate);
+                playParams.put("carparkName",carparkInfo.getCarparkName());
+                playParams.put("availableCarSpace",carparkInfo.getAvailableCarSpace());
+                playParams.put("inOutTime",outTime.toString());
+                playParams.put("parkingLength",parkingLen);
+                playParams.put("kindName",CommonUtils.isEmpty(memberKind) ? "" : memberKind.getKindName());
+                playParams.put("chargeAmount",String.valueOf(chargeAmount));
+                playParams.put("limitReason",openGateModeInfo.get("limiReason"));
+                playParams.put("memberLeft",memberLeft);
+                playParams.put("isMultiCarno",isMultiCarno);
+                //playParams.put("driverName",driverName);
+                PlayLedInfo(socketClient.getDeviceInfo().getDeviceId(),1,playParams,ledDisplayConfig,ledType,ledId);
             }
 
-            try {
-                for (int i = 0; i < ParkSocketServer.getClientsCount(); i++) {
-                    SocketClient client = ParkSocketServer.getClient(i);
-                    if (inOutCarRoadInfo.getManageComputerId().equals(client.getChannelId())) {
-                        json.put("result", "0");
-                        SocketUtils.sendBizPackage(client, json, DeviceSIPEnum.CarPlateIndPrev.name());
-                    }
+        }
+
+        try {
+            for (int i = 0; i < ParkSocketServer.getClientsCount(); i++) {
+                SocketClient client = ParkSocketServer.getClient(i);
+                if (inOutCarRoadInfo.getManageComputerId().equals(client.getChannelId())) {
+                    json.put("result", "0");
+                    SocketUtils.sendBizPackage(client, json, DeviceSIPEnum.CarPlateIndPrev.name());
                 }
-            } catch (BizException ex) {
-                LOGGER.error("车辆扫牌信息推送失败:{},车牌:{},车道:{}", ex.getMessage(), carPlate, inOutCarRoadInfo.getCarRoadId());
             }
-        } catch (Exception e) {
-            LOGGER.error("设备推送记录异常");
+        } catch (BizException ex) {
+            LOGGER.error("车辆扫牌信息推送失败:{},车牌:{},车道:{}", ex.getMessage(), carPlate, inOutCarRoadInfo.getCarRoadId());
         }
 
     }
@@ -970,251 +969,247 @@ public class DeviceBizServiceImpl implements DeviceBizService {
 
     @Override
     public void PlayLedInfo(String ipcDevId, Integer inOutType, JSONObject ledPlayInfo, LedDisplayConfig ledDisplayConfig,String ledType,String ledId) {
-        try {
-            if(ledPlayInfo.containsKey("isForbidLed")){
-                String isForbidLed = ledPlayInfo.getString("isForbidLed");
-                if("1".equals(isForbidLed)){
-                    return;
-                }
+        if(ledPlayInfo.containsKey("isForbidLed")){
+            String isForbidLed = ledPlayInfo.getString("isForbidLed");
+            if("1".equals(isForbidLed)){
+                return;
             }
+        }
 
-            //调用播放接口
-            StarnetDeviceUtils starnetDeviceUtils = new StarnetDeviceUtils();
-            DeviceInfo deviceInfoMain = (DeviceInfo)baseDao.getById(DeviceInfo.class,ipcDevId);
+        //调用播放接口
+        StarnetDeviceUtils starnetDeviceUtils = new StarnetDeviceUtils();
+        DeviceInfo deviceInfoMain = (DeviceInfo)baseDao.getById(DeviceInfo.class,ipcDevId);
 
-            List<DeviceInfo> deviceInfoList = new ArrayList<>();
-            deviceInfoList.add(deviceInfoMain);
-            //注释以下代码则代表只是主IPC播报，反之则代表全部播报
-            if (!CommonUtils.isEmpty(deviceInfoMain.getSubIpcId())){
-                DeviceInfo deviceInfoSub = (DeviceInfo)baseDao.getById(DeviceInfo.class,deviceInfoMain.getSubIpcId());
-                deviceInfoList.add(deviceInfoSub);
-            }
+        List<DeviceInfo> deviceInfoList = new ArrayList<>();
+        deviceInfoList.add(deviceInfoMain);
+        //注释以下代码则代表只是主IPC播报，反之则代表全部播报
+        if (!CommonUtils.isEmpty(deviceInfoMain.getSubIpcId())){
+            DeviceInfo deviceInfoSub = (DeviceInfo)baseDao.getById(DeviceInfo.class,deviceInfoMain.getSubIpcId());
+            deviceInfoList.add(deviceInfoSub);
+        }
 
-            for (DeviceInfo deviceInfo : deviceInfoList) {
-                if ("3".equals(ledType)) {
-                    JSONObject voiceParams = new JSONObject();
-                    voiceParams.put("enabled", 1);
-                    voiceParams.put("parkName", ledPlayInfo.getString("carparkName"));
-                    voiceParams.put("LEDSound", 1);
-                    voiceParams.put("TTSSound", 0);
-                    Integer voice = ledPlayInfo.getInteger("voiceBroadcastVolume");
-                    if (CommonUtils.isEmpty(voice)) {
-                        voiceParams.put("LEDVolume", ledDisplayConfig.getVoiceBroadcastVolume());
-                        voiceParams.put("TTSVolume", ledDisplayConfig.getVoiceBroadcastVolume());
-                    } else {
-                        voiceParams.put("LEDVolume", voice);
-                        voiceParams.put("TTSVolume", voice);
-                    }
-                    starnetDeviceUtils.updateBroadcastDisplayInfo(deviceInfo.getDeviceIp(), Integer.valueOf(deviceInfo.getDevicePort()),
-                            deviceInfo.getDeviceUsername(), deviceInfo.getDevicePwd(), voiceParams);
-
-                    List<JSONObject> ledParamsList = new ArrayList<>();
-                    String playContent;
-                    JSONObject params;
-
-                    //除了空闲状态和综合空位提示不播语音
-                    if (ledDisplayConfig.getSceneNo().equals(1) || ledDisplayConfig.getSceneNo().equals(2) || ledDisplayConfig.getSceneNo().equals(3)
-                            || ledDisplayConfig.getSceneNo().equals(4) || ledDisplayConfig.getSceneNo().equals(6)) {
-                        playContent = GetPlayStr(ledPlayInfo, ledDisplayConfig, 4);
-                        if ("剩余xxx".equals(playContent)) {
-                            playContent = ledPlayInfo.getString("memberLeft");
-                        }
-                        DeviceInfo ledDeviceInfo = (DeviceInfo) baseDao.getById(DeviceInfo.class, ledId);
-                        Integer playPos = CommonUtils.isEmpty(ledDeviceInfo.getVoiceChannel()) ? 1 : (ledDeviceInfo.getVoiceChannel() + 1);
-                        params = new JSONObject();
-                        params.put("type", 1);
-                        params.put("pos", playPos);
-                        params.put("str", playContent);
-                        params.put("bscoll", 0);
-                        params.put("action","set");
-                        ledParamsList.add(params);
-                    }
-
-                    playContent = GetPlayStr(ledPlayInfo, ledDisplayConfig, 1);
-                    params = new JSONObject();
-                    params.put("type", 0);
-                    params.put("pos", 1);
-                    params.put("str", playContent);
-                    params.put("bscoll", 1);
-                    params.put("action","set");
-                    ledParamsList.add(params);
-
-                    playContent = GetPlayStr(ledPlayInfo, ledDisplayConfig, 2);
-                    params = new JSONObject();
-                    params.put("type", 0);
-                    params.put("pos", 2);
-                    params.put("str", playContent);
-                    params.put("bscoll", 1);
-                    params.put("action","set");
-                    ledParamsList.add(params);
-
-                    playContent = GetPlayStr(ledPlayInfo, ledDisplayConfig, 3);
-                    params = new JSONObject();
-                    params.put("type", 0);
-                    params.put("pos", 3);
-                    params.put("str", playContent);
-                    params.put("bscoll", 1);
-                    params.put("action","set");
-                    ledParamsList.add(params);
-
-                    DeviceLedCgiThread deviceLedCgiThread = new DeviceLedCgiThread();
-                    deviceLedCgiThread.setParamsList(ledParamsList);
-                    deviceLedCgiThread.setUsername(deviceInfo.getDeviceUsername());
-                    deviceLedCgiThread.setPassword(deviceInfo.getDevicePwd());
-                    deviceLedCgiThread.setIp(deviceInfo.getDeviceIp());
-                    deviceLedCgiThread.setPort(Integer.parseInt(deviceInfo.getDevicePort()));
-                    deviceLedCgiThread.start();
-
-                    JSONObject freeParams = new JSONObject();
-                    if (ledDisplayConfig.getSceneNo().equals(4) || ledDisplayConfig.getSceneNo().equals(6)) {
-                        freeParams.put("isNeedPlay", "false");
-                    } else {
-                        freeParams.put("isNeedPlay", "true");
-                    }
-                    String hql = "FROM LedDisplayConfig WHERE devId = ? AND sceneNo = ?";
-                    LedDisplayConfig ledDisplayConfigForFree = (LedDisplayConfig) baseDao.getUnique(hql, ledId, 5);
-                    String playContentFirst = GetPlayStr(ledPlayInfo, ledDisplayConfigForFree, 1);
-                    String playContentSecond = GetPlayStr(ledPlayInfo, ledDisplayConfigForFree, 2);
-                    String playContentThird = GetPlayStr(ledPlayInfo, ledDisplayConfigForFree, 3);
-                    freeParams.put("playType", "three");
-                    freeParams.put("deviceInfo", deviceInfo);
-                    freeParams.put("playTime", CommonUtils.getTimestamp().toString());
-                    freeParams.put("playContentFirst", playContentFirst);
-                    freeParams.put("playContentSecond", playContentSecond);
-                    freeParams.put("playContentThird", playContentThird);
-                    LedPlayFreeInfoServer.setSuspend(true);
-                    LedPlayFreeInfoServer.addPlayListInfo(freeParams);
-                    LedPlayFreeInfoServer.setSuspend(false);
+        for (DeviceInfo deviceInfo : deviceInfoList) {
+            if ("3".equals(ledType)) {
+                JSONObject voiceParams = new JSONObject();
+                voiceParams.put("enabled", 1);
+                voiceParams.put("parkName", ledPlayInfo.getString("carparkName"));
+                voiceParams.put("LEDSound", 1);
+                voiceParams.put("TTSSound", 0);
+                Integer voice = ledPlayInfo.getInteger("voiceBroadcastVolume");
+                if (CommonUtils.isEmpty(voice)) {
+                    voiceParams.put("LEDVolume", ledDisplayConfig.getVoiceBroadcastVolume());
+                    voiceParams.put("TTSVolume", ledDisplayConfig.getVoiceBroadcastVolume());
                 } else {
-                    List<JSONObject> ledParamsList = new ArrayList<>();
-                    String playContent, needCheckContent, crcContent, finalContent;
-                    String playStr, dlength, textLen;
-                    String playInfo = "";
-                    JSONObject params;
-                    DeviceInfo ledDeviceInfo = (DeviceInfo) baseDao.getById(DeviceInfo.class, ledId);
-                    Integer playPos = CommonUtils.isEmpty(ledDeviceInfo.getDeviceChannelNo()) ? 3 : Integer.valueOf(ledDeviceInfo.getDeviceChannelNo());
-                    //分四行播放
-                    if (ledDisplayConfig.getSceneNo().equals(1) || ledDisplayConfig.getSceneNo().equals(2) || ledDisplayConfig.getSceneNo().equals(3)
-                            || ledDisplayConfig.getSceneNo().equals(4) || ledDisplayConfig.getSceneNo().equals(6)) {
-                        playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfig, 4);         //已获取要播报的内容了
-                        try {
-                            playInfo = ChangePlayInfoToOx(playContent);
-                        } catch (UnsupportedEncodingException e) {
-                            e.printStackTrace();
-                        }
-                        Integer strLen = playInfo.length() / 2 + 1;
-                        dlength = (strLen.toHexString(strLen)).length() < 2 ? "0" + strLen.toHexString(strLen) : strLen.toHexString(strLen);
-                        needCheckContent = "0064FFFF30" + dlength + "01" + playInfo;
-                        crcContent = GetCrcCheckInfo(needCheckContent);
-
-                        finalContent = "0064FFFF30" + dlength + "01" + playInfo + crcContent;
-                        playStr = GetLedPlayStrToBase(finalContent);
-                        params = new JSONObject();
-                        params.put("uartID", playPos);
-                        params.put("write_data", playStr);
-                        params.put("need_rspdata", 0);
-                        params.put("action","set");
-                        ledParamsList.add(params);
-                    }
-
-                    //显示第一行
-                    playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfig, 0);
-                    playStr = playStrToFourLed(playContent,"0");
-                    params = new JSONObject();
-                    params.put("uartID", playPos);
-                    params.put("write_data", playStr);
-                    params.put("need_rspdata", 0);
-                    params.put("action","set");
-                    ledParamsList.add(params);
-                    //显示第二行
-                    playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfig, 1);
-                    playStr = playStrToFourLed(playContent,"1");
-                    params = new JSONObject();
-                    params.put("uartID", playPos);
-                    params.put("write_data", playStr);
-                    params.put("need_rspdata", 0);
-                    params.put("action","set");
-                    ledParamsList.add(params);
-                    //显示第三行
-                    playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfig, 2);
-                    playStr = playStrToFourLed(playContent,"2");
-                    params = new JSONObject();
-                    params.put("uartID", playPos);
-                    params.put("write_data", playStr);
-                    params.put("need_rspdata", 0);
-                    params.put("action","set");
-                    ledParamsList.add(params);
-
-                    //显示第四行
-                    playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfig, 3);
-                    playStr = playStrToFourLed(playContent,"3");
-                    params = new JSONObject();
-                    params.put("uartID", playPos);
-                    params.put("write_data", playStr);
-                    params.put("need_rspdata", 0);
-                    params.put("action","set");
-                    ledParamsList.add(params);
-
-                    DeviceLedFourThread deviceLedFourThread = new DeviceLedFourThread();
-                    deviceLedFourThread.setParamsList(ledParamsList);
-                    deviceLedFourThread.setUsername(deviceInfo.getDeviceUsername());
-                    deviceLedFourThread.setPassword(deviceInfo.getDevicePwd());
-                    deviceLedFourThread.setIp(deviceInfo.getDeviceIp());
-                    deviceLedFourThread.setPort(Integer.parseInt(deviceInfo.getDevicePort()));
-                    deviceLedFourThread.start();
-
-                    //设置空闲状态参数
-                    JSONObject freeParams = new JSONObject();
-                    if (ledDisplayConfig.getSceneNo().equals(4) || ledDisplayConfig.getSceneNo().equals(6)) {
-                        freeParams.put("isNeedPlay", "false");
-                    } else {
-                        freeParams.put("isNeedPlay", "true");
-                    }
-                    String hql = "FROM LedDisplayConfig WHERE devId = ? AND sceneNo = ?";
-                    LedDisplayConfig ledDisplayConfigForFree = (LedDisplayConfig) baseDao.getUnique(hql, ledId, 5);
-
-                    playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfigForFree, 0);
-                    if (playContent.indexOf("年")>0 && playContent.indexOf("月")>0 && playContent.indexOf("日")>0)
-                        freeParams.put("isFlashTimeOne", "1");
-                    else
-                        freeParams.put("isFlashTimeOne", "0");
-                    String playContentFirst = playStrToFourLed(playContent,"0");
-
-                    playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfigForFree, 1);
-                    if (playContent.indexOf("年")>0 && playContent.indexOf("月")>0 && playContent.indexOf("日")>0)
-                        freeParams.put("isFlashTimeTwo", "1");
-                    else
-                        freeParams.put("isFlashTimeTwo", "0");
-                    String playContentSecond = playStrToFourLed(playContent,"1");
-
-                    playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfigForFree, 2);
-                    if (playContent.indexOf("年")>0 && playContent.indexOf("月")>0 && playContent.indexOf("日")>0)
-                        freeParams.put("isFlashTimeThree", "1");
-                    else
-                        freeParams.put("isFlashTimeThree", "0");
-                    String playContentThird = playStrToFourLed(playContent,"2");;
-
-                    playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfigForFree, 3);
-                    if (playContent.indexOf("年")>0 && playContent.indexOf("月")>0 && playContent.indexOf("日")>0)
-                        freeParams.put("isFlashTimeFour", "1");
-                    else
-                        freeParams.put("isFlashTimeFour", "0");
-                    String playContentFour = playStrToFourLed(playContent,"3");
-                    freeParams.put("playType", "four");
-                    freeParams.put("playPos", playPos);
-                    freeParams.put("deviceInfo", deviceInfo);
-                    freeParams.put("playTime", CommonUtils.getTimestamp().toString());
-                    freeParams.put("playContentFirst", playContentFirst);
-                    freeParams.put("playContentSecond", playContentSecond);
-                    freeParams.put("playContentThird", playContentThird);
-                    freeParams.put("playContentFour", playContentFour);
-                    LedPlayFreeInfoServer.setSuspend(true);
-                    LedPlayFreeInfoServer.addPlayListInfo(freeParams);
-                    LedPlayFreeInfoServer.setSuspend(false);
+                    voiceParams.put("LEDVolume", voice);
+                    voiceParams.put("TTSVolume", voice);
                 }
+                starnetDeviceUtils.updateBroadcastDisplayInfo(deviceInfo.getDeviceIp(), Integer.valueOf(deviceInfo.getDevicePort()),
+                        deviceInfo.getDeviceUsername(), deviceInfo.getDevicePwd(), voiceParams);
+
+                List<JSONObject> ledParamsList = new ArrayList<>();
+                String playContent;
+                JSONObject params;
+
+                //除了空闲状态和综合空位提示不播语音
+                if (ledDisplayConfig.getSceneNo().equals(1) || ledDisplayConfig.getSceneNo().equals(2) || ledDisplayConfig.getSceneNo().equals(3)
+                        || ledDisplayConfig.getSceneNo().equals(4) || ledDisplayConfig.getSceneNo().equals(6)) {
+                    playContent = GetPlayStr(ledPlayInfo, ledDisplayConfig, 4);
+                    if ("剩余xxx".equals(playContent)) {
+                        playContent = ledPlayInfo.getString("memberLeft");
+                    }
+                    DeviceInfo ledDeviceInfo = (DeviceInfo) baseDao.getById(DeviceInfo.class, ledId);
+                    Integer playPos = CommonUtils.isEmpty(ledDeviceInfo.getVoiceChannel()) ? 1 : (ledDeviceInfo.getVoiceChannel() + 1);
+                    params = new JSONObject();
+                    params.put("type", 1);
+                    params.put("pos", playPos);
+                    params.put("str", playContent);
+                    params.put("bscoll", 0);
+                    params.put("action","set");
+                    ledParamsList.add(params);
+                }
+
+                playContent = GetPlayStr(ledPlayInfo, ledDisplayConfig, 1);
+                params = new JSONObject();
+                params.put("type", 0);
+                params.put("pos", 1);
+                params.put("str", playContent);
+                params.put("bscoll", 1);
+                params.put("action","set");
+                ledParamsList.add(params);
+
+                playContent = GetPlayStr(ledPlayInfo, ledDisplayConfig, 2);
+                params = new JSONObject();
+                params.put("type", 0);
+                params.put("pos", 2);
+                params.put("str", playContent);
+                params.put("bscoll", 1);
+                params.put("action","set");
+                ledParamsList.add(params);
+
+                playContent = GetPlayStr(ledPlayInfo, ledDisplayConfig, 3);
+                params = new JSONObject();
+                params.put("type", 0);
+                params.put("pos", 3);
+                params.put("str", playContent);
+                params.put("bscoll", 1);
+                params.put("action","set");
+                ledParamsList.add(params);
+
+                DeviceLedCgiThread deviceLedCgiThread = new DeviceLedCgiThread();
+                deviceLedCgiThread.setParamsList(ledParamsList);
+                deviceLedCgiThread.setUsername(deviceInfo.getDeviceUsername());
+                deviceLedCgiThread.setPassword(deviceInfo.getDevicePwd());
+                deviceLedCgiThread.setIp(deviceInfo.getDeviceIp());
+                deviceLedCgiThread.setPort(Integer.parseInt(deviceInfo.getDevicePort()));
+                deviceLedCgiThread.start();
+
+                JSONObject freeParams = new JSONObject();
+                if (ledDisplayConfig.getSceneNo().equals(4) || ledDisplayConfig.getSceneNo().equals(6)) {
+                    freeParams.put("isNeedPlay", "false");
+                } else {
+                    freeParams.put("isNeedPlay", "true");
+                }
+                String hql = "FROM LedDisplayConfig WHERE devId = ? AND sceneNo = ?";
+                LedDisplayConfig ledDisplayConfigForFree = (LedDisplayConfig) baseDao.getUnique(hql, ledId, 5);
+                String playContentFirst = GetPlayStr(ledPlayInfo, ledDisplayConfigForFree, 1);
+                String playContentSecond = GetPlayStr(ledPlayInfo, ledDisplayConfigForFree, 2);
+                String playContentThird = GetPlayStr(ledPlayInfo, ledDisplayConfigForFree, 3);
+                freeParams.put("playType", "three");
+                freeParams.put("deviceInfo", deviceInfo);
+                freeParams.put("playTime", CommonUtils.getTimestamp().toString());
+                freeParams.put("playContentFirst", playContentFirst);
+                freeParams.put("playContentSecond", playContentSecond);
+                freeParams.put("playContentThird", playContentThird);
+                LedPlayFreeInfoServer.setSuspend(true);
+                LedPlayFreeInfoServer.addPlayListInfo(freeParams);
+                LedPlayFreeInfoServer.setSuspend(false);
+            } else {
+                List<JSONObject> ledParamsList = new ArrayList<>();
+                String playContent, needCheckContent, crcContent, finalContent;
+                String playStr, dlength, textLen;
+                String playInfo = "";
+                JSONObject params;
+                DeviceInfo ledDeviceInfo = (DeviceInfo) baseDao.getById(DeviceInfo.class, ledId);
+                Integer playPos = CommonUtils.isEmpty(ledDeviceInfo.getDeviceChannelNo()) ? 3 : Integer.valueOf(ledDeviceInfo.getDeviceChannelNo());
+                //分四行播放
+                if (ledDisplayConfig.getSceneNo().equals(1) || ledDisplayConfig.getSceneNo().equals(2) || ledDisplayConfig.getSceneNo().equals(3)
+                        || ledDisplayConfig.getSceneNo().equals(4) || ledDisplayConfig.getSceneNo().equals(6)) {
+                    playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfig, 4);         //已获取要播报的内容了
+                    try {
+                        playInfo = ChangePlayInfoToOx(playContent);
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                    Integer strLen = playInfo.length() / 2 + 1;
+                    dlength = (strLen.toHexString(strLen)).length() < 2 ? "0" + strLen.toHexString(strLen) : strLen.toHexString(strLen);
+                    needCheckContent = "0064FFFF30" + dlength + "01" + playInfo;
+                    crcContent = GetCrcCheckInfo(needCheckContent);
+
+                    finalContent = "0064FFFF30" + dlength + "01" + playInfo + crcContent;
+                    playStr = GetLedPlayStrToBase(finalContent);
+                    params = new JSONObject();
+                    params.put("uartID", playPos);
+                    params.put("write_data", playStr);
+                    params.put("need_rspdata", 0);
+                    params.put("action","set");
+                    ledParamsList.add(params);
+                }
+
+                //显示第一行
+                playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfig, 0);
+                playStr = playStrToFourLed(playContent,"0");
+                params = new JSONObject();
+                params.put("uartID", playPos);
+                params.put("write_data", playStr);
+                params.put("need_rspdata", 0);
+                params.put("action","set");
+                ledParamsList.add(params);
+                //显示第二行
+                playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfig, 1);
+                playStr = playStrToFourLed(playContent,"1");
+                params = new JSONObject();
+                params.put("uartID", playPos);
+                params.put("write_data", playStr);
+                params.put("need_rspdata", 0);
+                params.put("action","set");
+                ledParamsList.add(params);
+                //显示第三行
+                playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfig, 2);
+                playStr = playStrToFourLed(playContent,"2");
+                params = new JSONObject();
+                params.put("uartID", playPos);
+                params.put("write_data", playStr);
+                params.put("need_rspdata", 0);
+                params.put("action","set");
+                ledParamsList.add(params);
+
+                //显示第四行
+                playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfig, 3);
+                playStr = playStrToFourLed(playContent,"3");
+                params = new JSONObject();
+                params.put("uartID", playPos);
+                params.put("write_data", playStr);
+                params.put("need_rspdata", 0);
+                params.put("action","set");
+                ledParamsList.add(params);
+
+                DeviceLedFourThread deviceLedFourThread = new DeviceLedFourThread();
+                deviceLedFourThread.setParamsList(ledParamsList);
+                deviceLedFourThread.setUsername(deviceInfo.getDeviceUsername());
+                deviceLedFourThread.setPassword(deviceInfo.getDevicePwd());
+                deviceLedFourThread.setIp(deviceInfo.getDeviceIp());
+                deviceLedFourThread.setPort(Integer.parseInt(deviceInfo.getDevicePort()));
+                deviceLedFourThread.start();
+
+                //设置空闲状态参数
+                JSONObject freeParams = new JSONObject();
+                if (ledDisplayConfig.getSceneNo().equals(4) || ledDisplayConfig.getSceneNo().equals(6)) {
+                    freeParams.put("isNeedPlay", "false");
+                } else {
+                    freeParams.put("isNeedPlay", "true");
+                }
+                String hql = "FROM LedDisplayConfig WHERE devId = ? AND sceneNo = ?";
+                LedDisplayConfig ledDisplayConfigForFree = (LedDisplayConfig) baseDao.getUnique(hql, ledId, 5);
+
+                playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfigForFree, 0);
+                if (playContent.indexOf("年")>0 && playContent.indexOf("月")>0 && playContent.indexOf("日")>0)
+                    freeParams.put("isFlashTimeOne", "1");
+                else
+                    freeParams.put("isFlashTimeOne", "0");
+                String playContentFirst = playStrToFourLed(playContent,"0");
+
+                playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfigForFree, 1);
+                if (playContent.indexOf("年")>0 && playContent.indexOf("月")>0 && playContent.indexOf("日")>0)
+                    freeParams.put("isFlashTimeTwo", "1");
+                else
+                    freeParams.put("isFlashTimeTwo", "0");
+                String playContentSecond = playStrToFourLed(playContent,"1");
+
+                playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfigForFree, 2);
+                if (playContent.indexOf("年")>0 && playContent.indexOf("月")>0 && playContent.indexOf("日")>0)
+                    freeParams.put("isFlashTimeThree", "1");
+                else
+                    freeParams.put("isFlashTimeThree", "0");
+                String playContentThird = playStrToFourLed(playContent,"2");;
+
+                playContent = GetPlayStrFour(ledPlayInfo, ledDisplayConfigForFree, 3);
+                if (playContent.indexOf("年")>0 && playContent.indexOf("月")>0 && playContent.indexOf("日")>0)
+                    freeParams.put("isFlashTimeFour", "1");
+                else
+                    freeParams.put("isFlashTimeFour", "0");
+                String playContentFour = playStrToFourLed(playContent,"3");
+                freeParams.put("playType", "four");
+                freeParams.put("playPos", playPos);
+                freeParams.put("deviceInfo", deviceInfo);
+                freeParams.put("playTime", CommonUtils.getTimestamp().toString());
+                freeParams.put("playContentFirst", playContentFirst);
+                freeParams.put("playContentSecond", playContentSecond);
+                freeParams.put("playContentThird", playContentThird);
+                freeParams.put("playContentFour", playContentFour);
+                LedPlayFreeInfoServer.setSuspend(true);
+                LedPlayFreeInfoServer.addPlayListInfo(freeParams);
+                LedPlayFreeInfoServer.setSuspend(false);
             }
-        } catch (Exception e) {
-            LOGGER.error("LED播报异常");
         }
     }
 
@@ -1222,66 +1217,62 @@ public class DeviceBizServiceImpl implements DeviceBizService {
     public Map<String,Object> GetLedPlaySence(String ledId,Integer inOutType, Integer criticalDay, Integer isNeedOpenGate, Timestamp inOutTime,
                                             MemberWallet memberWallet,String memberLeftInfo) {
         Map<String,Object> resMap = new HashedMap();
-        try {
-            String memberLeft = "";
-            String hql = "FROM LedDisplayConfig WHERE devId = ? AND sceneNo = ?";
-            Integer res = 6;
-            if (inOutType.equals(0)){
-                if (isNeedOpenGate.equals(0)){
-                    res = 6;
-                }else {
-                    if (!CommonUtils.isEmpty(memberWallet)) {
-                        switch (memberWallet.getPackKindId()){
-                            case 0 :
-                            case -3 :
-                            case -2 :{
-                                //预约，免费，包月
-                                long restTime = memberWallet.getEffectiveEndTime().getTime() - inOutTime.getTime();
-                                Integer leftDay = Integer.parseInt(restTime/(24*60*60*1000) + "");
-                                if (inOutTime.getTime() > memberWallet.getEffectiveStartTime().getTime() &&
-                                        inOutTime.getTime() < memberWallet.getEffectiveEndTime().getTime() &&
-                                        criticalDay.compareTo(leftDay) >= 0) {
-                                    res = 2;
-                                    memberLeft = "有效期还有" + String.valueOf(leftDay) + "天";
-                                }else {
-                                    res = 1;
-                                }
-                                break;
-                            }
-                            case 1 : {
-                                //包次
-                                res = memberWallet.getSurplusNumber() <= 5 ? 2 : 1;
-                                if (res.equals(2)) {
-                                    memberLeft = "剩余" + memberWallet.getSurplusNumber() + "次";
-                                }
-                                break;
-                            }
-                            case 2 : {
-                                //充值金额
-                                res = memberWallet.getSurplusAmount() <= 5 ? 2 : 1;
-                                if (res.equals(2)) {
-                                    memberLeft = "剩余" + memberWallet.getSurplusAmount() + "元";
-                                }
-                                break;
-                            }
-                            default:{
+        String memberLeft = "";
+        String hql = "FROM LedDisplayConfig WHERE devId = ? AND sceneNo = ?";
+        Integer res = 6;
+        if (inOutType.equals(0)){
+            if (isNeedOpenGate.equals(0)){
+                res = 6;
+            }else {
+                if (!CommonUtils.isEmpty(memberWallet)) {
+                    switch (memberWallet.getPackKindId()){
+                        case 0 :
+                        case -3 :
+                        case -2 :{
+                            //预约，免费，包月
+                            long restTime = memberWallet.getEffectiveEndTime().getTime() - inOutTime.getTime();
+                            Integer leftDay = Integer.parseInt(restTime/(24*60*60*1000) + "");
+                            if (inOutTime.getTime() > memberWallet.getEffectiveStartTime().getTime() &&
+                                    inOutTime.getTime() < memberWallet.getEffectiveEndTime().getTime() &&
+                                    criticalDay.compareTo(leftDay) >= 0) {
+                                res = 2;
+                                memberLeft = "有效期还有" + String.valueOf(leftDay) + "天";
+                            }else {
                                 res = 1;
-                                break;
                             }
+                            break;
                         }
-                    }else
-                        res = 1;
-                }
+                        case 1 : {
+                            //包次
+                            res = memberWallet.getSurplusNumber() <= 5 ? 2 : 1;
+                            if (res.equals(2)) {
+                                memberLeft = "剩余" + memberWallet.getSurplusNumber() + "次";
+                            }
+                            break;
+                        }
+                        case 2 : {
+                            //充值金额
+                            res = memberWallet.getSurplusAmount() <= 5 ? 2 : 1;
+                            if (res.equals(2)) {
+                                memberLeft = "剩余" + memberWallet.getSurplusAmount() + "元";
+                            }
+                            break;
+                        }
+                        default:{
+                            res = 1;
+                            break;
+                        }
+                    }
+                }else
+                    res = 1;
             }
-            else{   //出场
-                res = isNeedOpenGate.equals(0) ? 4 : 3;
-            }
-            LedDisplayConfig ledDisplayConfig = (LedDisplayConfig) baseDao.getUnique(hql,ledId,res);
-            resMap.put("ledDisplayConfig",ledDisplayConfig);
-            resMap.put("memberLeft",memberLeft);
-        } catch (Exception e) {
-            LOGGER.error("获取用户白名单信息异常");
         }
+        else{   //出场
+            res = isNeedOpenGate.equals(0) ? 4 : 3;
+        }
+        LedDisplayConfig ledDisplayConfig = (LedDisplayConfig) baseDao.getUnique(hql,ledId,res);
+        resMap.put("ledDisplayConfig",ledDisplayConfig);
+        resMap.put("memberLeft",memberLeft);
         return  resMap;
 
     }
