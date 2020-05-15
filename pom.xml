@@ -38,7 +38,7 @@
         <java.version>1.8</java.version>
         <mongo.java.version>3.4.2</mongo.java.version>
         <spring.data.jpa.version>1.9.6.RELEASE</spring.data.jpa.version>
-        <jackson.version>2.4.4</jackson.version>
+        <jackson.version>2.11.0</jackson.version>
         <poi.version>3.9</poi.version>
         <weixin-java-tools.version>2.6.0</weixin-java-tools.version>
     </properties>
